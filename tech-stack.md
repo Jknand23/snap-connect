@@ -37,27 +37,52 @@ AI-first personalized Snapchat for sports fans with real-time messaging, AR filt
 - **Error Boundaries**: Implement at feature level, not component level
 
 ### **Styling**
-- **Choice**: NativeWind
+- **Choice**: NativeWind v4
 - **Rationale**: 
   - Tailwind CSS for React Native with better performance
   - Consistent styling approach across components
   - Responsive design capabilities
+  - Improved stability and configuration over v2
+
+#### **Configuration (v4)**
+```javascript
+// tailwind.config.js
+module.exports = {
+  content: ["./App.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
+  theme: { extend: { /* custom sports colors */ } },
+  plugins: [],
+}
+
+// metro.config.js
+const { withNativeWind } = require('nativewind/metro');
+module.exports = withNativeWind(config, { input: './global.css' });
+
+// babel.config.js
+presets: [
+  ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+  "nativewind/babel",
+],
+```
 
 #### **Best Practices**
 - **Design Tokens**: Define consistent spacing, colors, and typography scales
 - **Responsive Design**: Use percentage-based layouts and flexible components
 - **Theme Management**: Implement dark/light mode support from the start
 - **Performance**: Use StyleSheet.create for static styles, avoid inline styles
+- **Global CSS**: Use global.css for base Tailwind directives
 
 #### **Limitations**
 - **Learning Curve**: Requires Tailwind CSS knowledge
 - **Bundle Size**: Adds overhead if not properly purged
-- **Customization**: Limited compared to styled-components for complex styling
+- **Configuration**: v4 requires specific Metro and Babel setup
+- **CSS Plugin**: May encounter async plugin issues that require specific configuration
 
 #### **Conventions**
 - **Class Ordering**: Layout → Spacing → Typography → Colors → Effects
 - **Responsive Breakpoints**: Use consistent breakpoint system
 - **Custom Classes**: Prefix with app-specific namespace to avoid conflicts
+- **Global Imports**: Import global.css in main entry point
 
 ### **State Management**
 - **Choice**: Zustand

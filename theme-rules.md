@@ -530,14 +530,20 @@
 
 ## 🎨 **Theme Implementation Guidelines**
 
-### **NativeWind/Tailwind Configuration**
+### **NativeWind v4/Tailwind Configuration**
 ```javascript
-// tailwind.config.js extensions
+// tailwind.config.js for NativeWind v4
 module.exports = {
+  content: ["./App.{js,jsx,ts,tsx}", "./src/**/*.{js,jsx,ts,tsx}"],
+  presets: [require("nativewind/preset")],
   theme: {
     extend: {
       colors: {
-        // Add custom colors here
+        // Sports team colors
+        'sports-nfl': '#d50a0a',
+        'sports-nba': '#c8102e', 
+        'sports-mlb': '#132448',
+        // Glass effect colors
         'glass-light': 'rgba(255, 255, 255, 0.25)',
         'glass-dark': 'rgba(15, 23, 42, 0.25)',
         'team-primary': 'var(--team-primary)',
@@ -554,7 +560,31 @@ module.exports = {
       },
     },
   },
+  plugins: [],
 }
+
+// metro.config.js for NativeWind v4
+const { getDefaultConfig } = require('expo/metro-config');
+const { withNativeWind } = require('nativewind/metro');
+
+const config = getDefaultConfig(__dirname);
+module.exports = withNativeWind(config, { input: './global.css' });
+
+// babel.config.js for NativeWind v4
+module.exports = function (api) {
+  api.cache(true);
+  return {
+    presets: [
+      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
+      "nativewind/babel",
+    ],
+  };
+};
+
+// global.css for NativeWind v4
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 ```
 
 ### **Dark Mode Implementation**

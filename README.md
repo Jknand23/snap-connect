@@ -19,11 +19,14 @@ SnapConnect V2 is an innovative AI-first social media platform designed specific
 
 ## 🎯 Core Features
 
-### MVP (Phase 1)
+### MVP (Phase 1) ✅ COMPLETED
 - ✅ Real-time photo/video sharing with disappearing messages
-- ✅ Basic AR filters and camera effects
+- ✅ Basic AR filters and camera effects  
 - ✅ User authentication and friend management
 - ✅ Stories and group messaging functionality
+- ✅ Complete 4-tab navigation (Feed, Messages, Camera, Discovery)
+- ✅ Core UI component library with sports theming
+- ✅ Database integration with Supabase
 
 ### Enhanced Features (Phase 2+)
 - 🚀 Consolidated sports news feeds
@@ -63,7 +66,7 @@ Our platform addresses unique challenges that sports fans face, going beyond bas
 
 ### Frontend
 - **Framework**: React Native (Expo → Bare React Native)
-- **Styling**: NativeWind (Tailwind CSS for React Native)
+- **Styling**: NativeWind v4 (Tailwind CSS for React Native)
 - **State Management**: Zustand
 - **Navigation**: React Navigation v6
 - **Real-time**: Supabase Realtime
@@ -258,6 +261,55 @@ npm run test:watch
 # Run E2E tests
 npm run test:e2e
 ```
+
+## 🔧 Troubleshooting
+
+### Common Setup Issues
+
+**Problem**: NativeWind CSS plugin errors during build
+```
+ERROR index.ts: Use process(css).then(cb) to work with async plugins
+```
+
+**Solution**: The project now uses NativeWind v4 with proper configuration. If you encounter this error:
+
+1. **Ensure correct versions are installed**:
+   ```bash
+   npm install nativewind@^4.0.1 tailwindcss@^3.4.0 --legacy-peer-deps
+   ```
+
+2. **Verify configuration files**:
+   - `tailwind.config.js` includes `presets: [require("nativewind/preset")]`
+   - `metro.config.js` uses `withNativeWind(config, { input: './global.css' })`
+   - `babel.config.js` uses presets format (not plugins)
+   - `global.css` exists with Tailwind directives
+
+3. **Clear cache and restart**:
+   ```bash
+   npx expo start --clear
+   ```
+
+**Problem**: Styling not appearing in app
+
+**Solution**: 
+- Verify `nativewind-env.d.ts` exists for TypeScript support
+- Check that all component file paths are included in `tailwind.config.js` content array
+- Ensure Metro cache is cleared
+
+**Problem**: Build succeeds but black screen on Android
+
+**Solution**: Usually indicates a configuration error. Check Metro bundler logs and ensure all environment variables are properly set.
+
+### Environment Issues
+
+**Problem**: Missing `.env` file
+- Copy `env.example` to `.env` and add your actual API keys
+- Restart development server after adding environment variables
+
+**Problem**: Supabase connection issues
+- Verify your Supabase URL and anon key are correct
+- Check that your Supabase project is active
+- Ensure RLS policies allow authenticated access
 
 ## 🤖 AI Integration
 
