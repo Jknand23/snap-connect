@@ -31,9 +31,10 @@ This document outlines the comprehensive user journey through the AI-powered spo
 ### 2. Home Dashboard Experience
 
 5. **Main Feed Access**
-   - User lands on personalized home feed
-   - Feed displays mix of: friends' stories, team news, personalized content suggestions
+   - User lands on camera screen with three tabs on the bottom (Discovery, Camera, and Messages) 
+   - Discover displays mix of: friends' stories, team news, personalized content suggestions
    - AI-curated content based on user's team/player preferences
+   - Messages shows personal and community messages
 
 6. **Content Consumption Navigation**
    - User can navigate between different content types:
