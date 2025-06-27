@@ -13,49 +13,10 @@ import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
 import { friendsService, FriendWithStatus } from '../../services/database/friendsService';
 import { chatService, Chat } from '../../services/messaging/chatService';
+import { communitiesService, CommunityWithDetails } from '../../services/messaging/communitiesService';
 import { MessagesStackParamList } from '../../app/navigation/MainNavigator';
 
 type MessagesScreenNavigationProp = StackNavigationProp<MessagesStackParamList, 'MessagesList'>;
-
-interface Community {
-  id: string;
-  name: string;
-  emoji: string;
-  memberCount: string;
-  isLive: boolean;
-  lastActivity: string;
-  newMessages: number;
-}
-
-const TEAM_COMMUNITIES: Community[] = [
-  {
-    id: '1',
-    name: 'Cowboys Nation',
-    emoji: '🏈',
-    memberCount: '45.2K',
-    isLive: true,
-    lastActivity: 'Game discussion • Now',
-    newMessages: 12
-  },
-  {
-    id: '2',
-    name: 'Lakers Family',
-    emoji: '🏀',
-    memberCount: '67.8K',
-    isLive: false,
-    lastActivity: 'Trade rumors • 15m',
-    newMessages: 3
-  },
-  {
-    id: '3',
-    name: 'Bronx Bombers',
-    emoji: '⚾',
-    memberCount: '32.4K',
-    isLive: true,
-    lastActivity: 'Live: World Series • Now',
-    newMessages: 8
-  },
-];
 
 export function MessagesScreen() {
   const navigation = useNavigation<MessagesScreenNavigationProp>();
@@ -63,26 +24,39 @@ export function MessagesScreen() {
   const [selectedTab, setSelectedTab] = useState<'chats' | 'communities'>('chats');
   const [friends, setFriends] = useState<FriendWithStatus[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
+  const [communities, setCommunities] = useState<CommunityWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   /**
-   * Load all chats (both direct and group chats)
+   * Load all chats and communities
    */
-  const loadChats = useCallback(async () => {
-    if (!user) return;
+  const loadData = useCallback(async () => {
+    if (!user) {
+      console.log('No user found, skipping data load');
+      return;
+    }
+    
+    console.log('Loading data for user:', user.id);
     
     try {
       setIsLoading(true);
-      const [friendsData, chatsData] = await Promise.all([
+      
+      const [friendsData, chatsData, communitiesData] = await Promise.all([
         friendsService.getFriendsWithMessages(),
-        chatService.getUserChats()
+        chatService.getUserChats(),
+        communitiesService.getUserCommunities().catch(error => {
+          console.error('Communities loading failed:', error);
+          return []; // Return empty array if communities aren't set up yet
+        })
       ]);
+      
       setFriends(friendsData);
       setChats(chatsData);
+      setCommunities(communitiesData);
     } catch (error) {
-      console.error('Error loading chats:', error);
-      Alert.alert('Error', 'Failed to load chats');
+      console.error('Error loading data:', error);
+      Alert.alert('Error', 'Failed to load data');
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +68,7 @@ export function MessagesScreen() {
   const onRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await loadChats();
+      await loadData();
     } finally {
       setIsRefreshing(false);
     }
@@ -102,8 +76,8 @@ export function MessagesScreen() {
 
   // Load initial data
   useEffect(() => {
-    loadChats();
-  }, [loadChats]);
+    loadData();
+  }, [loadData]);
 
   /**
    * Navigate to profile
@@ -150,10 +124,15 @@ export function MessagesScreen() {
   }
 
   /**
-   * Join community
+   * Open community chat
    */
-  function joinCommunity(communityId: string) {
-    console.log('Joining community:', communityId);
+  function openCommunityChat(community: CommunityWithDetails) {
+    navigation.navigate('CommunityChat', {
+      communityId: community.id,
+      communityName: community.name,
+      communityEmoji: community.emoji,
+      communityType: community.type,
+    });
   }
 
   /**
@@ -194,7 +173,7 @@ export function MessagesScreen() {
       'No messages';
     
     const lastMessageText = chat.last_message ? 
-      `${chat.last_message.sender_username}: ${chat.last_message.content}` : 
+      `${chat.last_message.sender_username || 'Unknown'}: ${chat.last_message.content || ''}` : 
       'No messages yet';
 
     return (
@@ -218,7 +197,7 @@ export function MessagesScreen() {
             <View className="flex-row items-center justify-between mb-1">
               <Text className="body-medium text-dark-text-primary font-medium">
                 {displayName}
-                {isGroupChat && chat.participant_count && (
+                {isGroupChat && chat.participant_count != null && (
                   <Text className="text-dark-text-tertiary text-sm"> ({chat.participant_count})</Text>
                 )}
               </Text>
@@ -257,7 +236,7 @@ export function MessagesScreen() {
             <View className={`w-12 h-12 rounded-full items-center justify-center ${
               friend.has_new_messages ? 'border-2 border-team-primary' : 'border border-dark-border-medium'
             } bg-dark-bg-tertiary`}>
-              <Text className="text-lg">{teamEmoji}</Text>
+              <Text className="text-lg">{teamEmoji || '🏟️'}</Text>
               {friend.is_online && (
                 <View className="absolute -bottom-0.5 -right-0.5 status-online" />
               )}
@@ -266,7 +245,7 @@ export function MessagesScreen() {
           
           <View className="flex-1">
             <View className="flex-row items-center justify-between mb-1">
-              <Text className="body-medium text-dark-text-primary font-medium">{friend.username}</Text>
+              <Text className="body-medium text-dark-text-primary font-medium">{friend.username || 'Unknown User'}</Text>
               {friend.has_new_messages && (
                 <View className="w-2 h-2 bg-live-indicator rounded-full" />
               )}
@@ -285,23 +264,42 @@ export function MessagesScreen() {
   /**
    * Render community item
    */
-  function renderCommunity(community: Community) {
+  function renderCommunity(community: CommunityWithDetails) {
+    const hasUnread = (community.unread_count || 0) > 0;
+    const memberCount = (community.member_count || 0) >= 1000 
+      ? `${((community.member_count || 0) / 1000).toFixed(1)}K` 
+      : (community.member_count || 0).toString();
+    
+    const lastActivity = community.last_message
+      ? (() => {
+          const now = new Date();
+          const messageTime = new Date(community.last_message.created_at);
+          const diffMs = now.getTime() - messageTime.getTime();
+          const diffMins = Math.floor(diffMs / (1000 * 60));
+          if (diffMins < 1) return 'Just now';
+          if (diffMins < 60) return `${diffMins}m ago`;
+          return `${Math.floor(diffMins / 60)}h ago`;
+        })()
+      : 'No recent activity';
+
     return (
       <TouchableOpacity 
         key={community.id} 
         className="card-sleek mb-2 p-3 interactive-item"
-        onPress={() => joinCommunity(community.id)}
+        onPress={() => openCommunityChat(community)}
       >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">
             <View className="relative mr-3">
               <View className={`w-12 h-12 rounded-lg items-center justify-center ${
-                community.isLive ? 'border-2 border-live-indicator' : 'border border-dark-border-medium'
+                hasUnread ? 'border-2 border-live-indicator' : 'border border-dark-border-medium'
               } bg-dark-bg-tertiary`}>
-                <Text className="text-lg">{community.emoji}</Text>
-                {community.isLive && (
+                <Text className="text-lg">{community.emoji || '🏟️'}</Text>
+                {hasUnread && (
                   <View className="absolute -top-1 -right-1">
-                    <Text className="live-badge text-xs">LIVE</Text>
+                    <View className="bg-live-indicator w-5 h-5 rounded-full items-center justify-center">
+                      <Text className="text-white text-xs font-bold">{community.unread_count || 0}</Text>
+                    </View>
                   </View>
                 )}
               </View>
@@ -309,18 +307,17 @@ export function MessagesScreen() {
             
             <View className="flex-1">
               <View className="flex-row items-center justify-between mb-1">
-                <Text className="body-medium text-dark-text-primary font-medium">{community.name}</Text>
-                <Text className="caption text-dark-text-tertiary">{community.memberCount}</Text>
+                <Text className="body-medium text-dark-text-primary font-medium">{community.name || 'Community'}</Text>
+                <Text className="caption text-dark-text-tertiary">{memberCount}</Text>
               </View>
-              <Text className="caption text-dark-text-tertiary">{community.lastActivity}</Text>
+              <Text className="caption text-dark-text-tertiary">{lastActivity}</Text>
+              {community.last_message && (
+                <Text className="caption text-dark-text-secondary" numberOfLines={1}>
+                  {community.last_message.sender_username || 'Unknown'}: {community.last_message.content || ''}
+                </Text>
+              )}
             </View>
           </View>
-
-          {community.newMessages > 0 && (
-            <View className="bg-interactive w-6 h-6 rounded-full items-center justify-center ml-2">
-              <Text className="text-white text-xs font-bold">{community.newMessages}</Text>
-            </View>
-          )}
         </View>
       </TouchableOpacity>
     );
@@ -420,7 +417,35 @@ export function MessagesScreen() {
 
         {selectedTab === 'communities' && (
           <View className="p-4">
-            {TEAM_COMMUNITIES.map(renderCommunity)}
+            {isLoading ? (
+              <View className="items-center py-12">
+                <Text className="h3 text-dark-text-secondary text-center mb-4">Loading Communities...</Text>
+                <Text className="body-medium text-dark-text-tertiary text-center">
+                  Finding your team communities
+                </Text>
+              </View>
+            ) : communities.length === 0 ? (
+              <View className="items-center py-12">
+                <Text className="h3 text-dark-text-secondary text-center mb-4">No Communities Available</Text>
+                <Text className="body-medium text-dark-text-tertiary text-center mb-6">
+                  Make sure you're signed in and have set up your sports preferences. {'\n'}
+                  Communities will appear based on your favorite teams and leagues.
+                </Text>
+                <Button
+                  title="Check Profile Settings"
+                  variant="secondary"
+                  size="md"
+                  onPress={openProfile}
+                />
+              </View>
+            ) : (
+              <>
+                <Text className="text-dark-text-secondary font-medium mb-3 text-sm uppercase tracking-wide">
+                  Your Communities ({communities.length})
+                </Text>
+                {communities.map(renderCommunity)}
+              </>
+            )}
           </View>
         )}
       </ScrollView>

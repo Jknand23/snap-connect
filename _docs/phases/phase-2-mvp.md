@@ -1,16 +1,33 @@
 # Phase 2: MVP - Core Sports Snapchat Features
 
 ## Overview
-Build the essential Snapchat-style functionality with basic sports integration. This phase delivers a minimal viable product where users can capture and share sports content, connect with other fans, and experience core social features. The app becomes fully usable for basic sports fan interactions.
+Build the essential Snapchat-style functionality with comprehensive sports integration. This phase delivers a minimal viable product where users can capture and share sports content, connect with other fans, and experience core social features across all major North American sports leagues. The app becomes fully usable for comprehensive sports fan interactions.
 
 **Duration**: 3-4 weeks  
-**Goal**: Functional sports-focused social media app with core Snapchat features
+**Goal**: Functional sports-focused social media app with core Snapchat features and complete team coverage
+
+**Team Integration Status**: ✅ **COMPLETE** - All teams integrated across 4 major leagues:
+- **NFL**: 32 teams (all divisions)
+- **NBA**: 30 teams (all conferences and divisions) 
+- **MLB**: 30 teams (all leagues and divisions)
+- **NHL**: 32 teams (all divisions)
+- **Total**: 124 professional sports teams with official colors and branding
 
 ## ✅ **Authentication Setup Complete**
 **Status**: Supabase authentication is now working correctly with signup/signin functionality. Database schema has been successfully migrated with all required tables (profiles, user_sports_preferences, teams, stories, messages, etc.). Email confirmation has been configured and user registration flow is operational.
 
 ## ✅ **Profile Navigation & Sign Out Complete**
 **Status**: Profile screen has been successfully integrated into the navigation system. Users can now access their profile from the Messages screen header button and sign out functionality is fully implemented with confirmation dialog.
+
+## ✅ **Communities Feature Complete**
+**Status**: Full communities system has been implemented with:
+- **Team-specific communities**: Available for each of the 124 professional teams based on user's favorite teams
+- **League-wide communities**: NFL, NBA, MLB, and NHL discussions available to users who follow teams in those leagues
+- **1-hour message expiration**: Community messages automatically expire after 1 hour (different from view-based disappearing messages in private chats)
+- **Automatic membership**: Users are automatically joined to communities for their selected teams and leagues
+- **Real-time messaging**: Live community discussions with reactions and replies
+- **Complete database schema**: Separate community tables with proper RLS policies for security
+- **Navigation integration**: Accessible from Messages screen and dedicated Communities screen
 
 ## Deliverables
 
@@ -269,6 +286,10 @@ CREATE TABLE user_sports_preferences (
 - [ ] App handles 100+ concurrent users without performance issues
 - [x] **Profile navigation and sign out functionality works** ✅
 - [x] **Group messaging with coordinated ephemeral behavior implemented** ✅
+- [x] **Communities feature fully implemented with team and league-specific chats** ✅
+- [x] **Community messages expire after 1 hour automatically** ✅
+- [x] **Users automatically joined to communities based on team preferences** ✅
+- [x] **Real-time community messaging with reactions and replies** ✅
 
 ## User Acceptance Criteria
 - **New User Journey**: User completes registration → sports onboarding → captures first content → shares to story → connects with sports friends

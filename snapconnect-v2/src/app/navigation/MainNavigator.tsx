@@ -17,6 +17,8 @@ import { ProfileScreen } from '../../features/profile/ProfileScreen';
 import { StoryCreatorScreen } from '../../features/stories/StoryCreatorScreen';
 import CreateGroupChatScreen from '../../features/messages/CreateGroupChatScreen';
 import GroupChatScreen from '../../features/messages/GroupChatScreen';
+import { CommunitiesScreen } from '../../features/communities/CommunitiesScreen';
+import { CommunityChatScreen } from '../../features/communities/CommunityChatScreen';
 
 /**
  * Simple Discovery Icon - Magnifying glass
@@ -146,6 +148,13 @@ export type MessagesStackParamList = {
     chatId: string;
     chatName?: string;
   };
+  Communities: undefined;
+  CommunityChat: {
+    communityId: string;
+    communityName: string;
+    communityEmoji: string;
+    communityType: 'team' | 'league';
+  };
 };
 
 export type RootTabParamList = {
@@ -176,6 +185,8 @@ function MessagesStackNavigator() {
       <MessagesStack.Screen name="Chat" component={ChatScreen} />
       <MessagesStack.Screen name="CreateGroupChat" component={CreateGroupChatScreen} />
       <MessagesStack.Screen name="GroupChat" component={GroupChatScreen} />
+      <MessagesStack.Screen name="Communities" component={CommunitiesScreen} />
+      <MessagesStack.Screen name="CommunityChat" component={CommunityChatScreen} />
     </MessagesStack.Navigator>
   );
 }

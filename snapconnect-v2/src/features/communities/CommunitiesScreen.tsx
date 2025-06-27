@@ -1,138 +1,213 @@
 /**
  * Communities Screen
- * Fan communities and team-based group interactions
+ * Fan communities and team-based group interactions with real communities integration
  */
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Button } from '../../components/ui/Button';
 import { useAuthStore } from '../../stores/authStore';
+import { communitiesService, CommunityWithDetails } from '../../services/messaging/communitiesService';
 
-interface Community {
-  id: string;
-  name: string;
-  type: 'team' | 'league' | 'general';
-  league: string;
-  memberCount: number;
-  isLive: boolean;
-  lastActivity: string;
-  emoji: string;
-}
+type CommunitiesStackParamList = {
+  Communities: undefined;
+  CommunityChat: {
+    communityId: string;
+    communityName: string;
+    communityEmoji: string;
+    communityType: 'team' | 'league';
+  };
+};
 
-const SAMPLE_COMMUNITIES: Community[] = [
-  {
-    id: '1',
-    name: 'Dallas Cowboys',
-    type: 'team',
-    league: 'NFL',
-    memberCount: 45230,
-    isLive: true,
-    lastActivity: '2 min ago',
-    emoji: '🏈'
-  },
-  {
-    id: '2',
-    name: 'Los Angeles Lakers',
-    type: 'team',
-    league: 'NBA',
-    memberCount: 67890,
-    isLive: false,
-    lastActivity: '15 min ago',
-    emoji: '🏀'
-  },
-  {
-    id: '3',
-    name: 'New York Yankees',
-    type: 'team',
-    league: 'MLB',
-    memberCount: 52000,
-    isLive: false,
-    lastActivity: '1 hour ago',
-    emoji: '⚾'
-  },
-  {
-    id: '4',
-    name: 'NFL Fantasy Football',
-    type: 'general',
-    league: 'NFL',
-    memberCount: 128500,
-    isLive: true,
-    lastActivity: 'Just now',
-    emoji: '🏆'
-  },
-  {
-    id: '5',
-    name: 'NBA Trade Rumors',
-    type: 'general',
-    league: 'NBA',
-    memberCount: 89200,
-    isLive: true,
-    lastActivity: '5 min ago',
-    emoji: '📰'
-  },
-];
+type CommunitiesNavigationProp = StackNavigationProp<CommunitiesStackParamList, 'Communities'>;
 
 export function CommunitiesScreen() {
   const { user } = useAuthStore();
+  const navigation = useNavigation<CommunitiesNavigationProp>();
   const [selectedTab, setSelectedTab] = useState<'my' | 'discover' | 'live'>('my');
+  const [myCommunities, setMyCommunities] = useState<CommunityWithDetails[]>([]);
+  const [availableCommunities, setAvailableCommunities] = useState<CommunityWithDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   /**
-   * Filter communities based on selected tab
+   * Load user's communities
    */
-  function getFilteredCommunities() {
-    switch (selectedTab) {
-      case 'my':
-        return SAMPLE_COMMUNITIES.slice(0, 3); // User's joined communities
-      case 'live':
-        return SAMPLE_COMMUNITIES.filter(c => c.isLive);
-      case 'discover':
-        return SAMPLE_COMMUNITIES;
-      default:
-        return SAMPLE_COMMUNITIES;
+  const loadMyCommunities = useCallback(async () => {
+    try {
+      const communities = await communitiesService.getUserCommunities();
+      setMyCommunities(communities);
+    } catch (error) {
+      console.error('Error loading my communities:', error);
+      Alert.alert('Error', 'Failed to load your communities');
     }
-  }
+  }, []);
+
+  /**
+   * Load available communities
+   */
+  const loadAvailableCommunities = useCallback(async () => {
+    try {
+      const communities = await communitiesService.getAvailableCommunities();
+      setAvailableCommunities(communities);
+    } catch (error) {
+      console.error('Error loading available communities:', error);
+      Alert.alert('Error', 'Failed to load available communities');
+    }
+  }, []);
+
+  /**
+   * Load all data
+   */
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        loadMyCommunities(),
+        loadAvailableCommunities(),
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadMyCommunities, loadAvailableCommunities]);
+
+  /**
+   * Refresh data
+   */
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await loadData();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   /**
    * Join community action
    */
-  function joinCommunity(communityId: string) {
-    // TODO: Implement actual join functionality
-    console.log('Joining community:', communityId);
-  }
+  const joinCommunity = async (communityId: string) => {
+    try {
+      await communitiesService.joinCommunity(communityId);
+      await loadData(); // Refresh data
+      Alert.alert('Success', 'Joined community successfully!');
+    } catch (error) {
+      console.error('Error joining community:', error);
+      Alert.alert('Error', 'Failed to join community');
+    }
+  };
+
+  /**
+   * Open community chat
+   */
+  const openCommunityChat = (community: CommunityWithDetails) => {
+    navigation.navigate('CommunityChat', {
+      communityId: community.id,
+      communityName: community.name,
+      communityEmoji: community.emoji,
+      communityType: community.type,
+    });
+  };
+
+  /**
+   * Get filtered communities based on selected tab
+   */
+  const getFilteredCommunities = (): CommunityWithDetails[] => {
+    switch (selectedTab) {
+      case 'my':
+        return myCommunities;
+      case 'live':
+        return [...myCommunities, ...availableCommunities].filter(c => 
+          c.last_message && 
+          new Date(c.last_message.created_at) > new Date(Date.now() - 30 * 60 * 1000) // Active in last 30 minutes
+        );
+      case 'discover':
+        return availableCommunities;
+      default:
+        return myCommunities;
+    }
+  };
+
+  /**
+   * Format member count
+   */
+  const formatMemberCount = (count: number): string => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)}M`;
+    }
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+  };
+
+  /**
+   * Get last activity text
+   */
+  const getLastActivityText = (community: CommunityWithDetails): string => {
+    if (!community.last_message) {
+      return 'No recent activity';
+    }
+
+    const now = new Date();
+    const messageTime = new Date(community.last_message.created_at);
+    const diffMs = now.getTime() - messageTime.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+    return messageTime.toLocaleDateString();
+  };
 
   /**
    * Render community card
    */
-  function renderCommunityCard(community: Community) {
-    const isJoined = selectedTab === 'my';
+  const renderCommunityCard = (community: CommunityWithDetails) => {
+    const isJoined = community.is_member;
+    const hasUnread = community.unread_count && community.unread_count > 0;
     
     return (
-      <TouchableOpacity key={community.id} style={styles.communityCard}>
+      <TouchableOpacity 
+        key={community.id} 
+        style={styles.communityCard}
+        onPress={() => isJoined ? openCommunityChat(community) : undefined}
+        disabled={!isJoined}
+      >
         <View style={styles.communityHeader}>
           <View style={styles.communityInfo}>
             <View style={styles.communityTitleRow}>
               <Text style={styles.communityEmoji}>{community.emoji}</Text>
               <Text style={styles.communityName}>{community.name}</Text>
-              {community.isLive && (
-                <View style={styles.liveIndicator}>
-                  <Text style={styles.liveText}>LIVE</Text>
+              {hasUnread && (
+                <View style={styles.unreadBadge}>
+                  <Text style={styles.unreadText}>{community.unread_count}</Text>
                 </View>
               )}
             </View>
             <Text style={styles.communityMeta}>
-              {community.league} • {community.memberCount.toLocaleString()} members
+              {community.league} • {formatMemberCount(community.member_count)} members
             </Text>
-            <Text style={styles.lastActivity}>Last activity: {community.lastActivity}</Text>
+            <Text style={styles.lastActivity}>
+              {getLastActivityText(community)}
+            </Text>
+            {community.last_message && (
+              <Text style={styles.lastMessage} numberOfLines={1}>
+                {community.last_message.sender_username}: {community.last_message.content}
+              </Text>
+            )}
           </View>
         </View>
         
         <View style={styles.communityActions}>
           {isJoined ? (
             <Button
-              title="View"
+              title="Chat"
               variant="primary"
               size="sm"
-              style={styles.actionButton}
+              onPress={() => openCommunityChat(community)}
             />
           ) : (
             <Button
@@ -140,13 +215,19 @@ export function CommunitiesScreen() {
               variant="outline"
               size="sm"
               onPress={() => joinCommunity(community.id)}
-              style={styles.actionButton}
             />
           )}
         </View>
       </TouchableOpacity>
     );
-  }
+  };
+
+  // Load initial data
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user, loadData]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -185,7 +266,16 @@ export function CommunitiesScreen() {
       </View>
 
       {/* Communities List */}
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor="#fff"
+          />
+        }
+      >
         {selectedTab === 'my' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>🏟️ Your Teams</Text>
@@ -206,23 +296,31 @@ export function CommunitiesScreen() {
 
         {selectedTab === 'discover' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🔍 Discover Communities</Text>
+            <Text style={styles.sectionTitle}>🔍 Discover</Text>
             <Text style={styles.sectionSubtitle}>
-              Find new communities to join
+              Join new communities based on your teams
             </Text>
           </View>
         )}
 
-        {getFilteredCommunities().map(renderCommunityCard)}
-
-        {/* Create Community Button */}
-        <View style={styles.createSection}>
-          <Button
-            title="Create New Community"
-            variant="outline"
-            style={styles.createButton}
-          />
+        {/* Communities Grid */}
+        <View style={styles.communitiesContainer}>
+          {getFilteredCommunities().map(renderCommunityCard)}
         </View>
+
+        {getFilteredCommunities().length === 0 && !isLoading && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>
+              {selectedTab === 'my' ? 'No Communities Yet' : 'No Communities Available'}
+            </Text>
+            <Text style={styles.emptySubtitle}>
+              {selectedTab === 'my' 
+                ? 'Join communities to start connecting with fellow fans'
+                : 'Check back later for new communities to join'
+              }
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -231,7 +329,7 @@ export function CommunitiesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#000',
   },
   header: {
     padding: 20,
@@ -240,61 +338,63 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#fff',
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 16,
+    color: '#888',
   },
   tabContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
+    backgroundColor: '#1a1a1a',
+    marginHorizontal: 20,
+    borderRadius: 12,
+    padding: 4,
     marginBottom: 20,
   },
   tab: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
     alignItems: 'center',
+    borderRadius: 8,
   },
   activeTab: {
-    borderBottomColor: '#3b82f6',
+    backgroundColor: '#333',
   },
   tabText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#64748b',
+    fontWeight: '600',
+    color: '#888',
   },
   activeTabText: {
-    color: '#3b82f6',
+    color: '#fff',
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   section: {
+    paddingHorizontal: 20,
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
     marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#888',
+  },
+  communitiesContainer: {
+    paddingHorizontal: 20,
   },
   communityCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#334155',
+    marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -307,50 +407,63 @@ const styles = StyleSheet.create({
   communityTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   communityEmoji: {
-    fontSize: 20,
-    marginRight: 8,
+    fontSize: 24,
+    marginRight: 12,
   },
   communityName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
     flex: 1,
   },
-  liveIndicator: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 6,
+  unreadBadge: {
+    backgroundColor: '#007AFF',
+    borderRadius: 12,
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    marginLeft: 8,
   },
-  liveText: {
-    fontSize: 10,
+  unreadText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
   communityMeta: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 2,
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 4,
   },
   lastActivity: {
-    fontSize: 11,
-    color: '#475569',
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  lastMessage: {
+    fontSize: 12,
+    color: '#888',
+    fontStyle: 'italic',
   },
   communityActions: {
     marginLeft: 12,
   },
-  actionButton: {
-    minWidth: 60,
-  },
-  createSection: {
-    marginTop: 20,
-    marginBottom: 40,
+  emptyState: {
     alignItems: 'center',
+    padding: 40,
   },
-  createButton: {
-    paddingHorizontal: 32,
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 }); 
