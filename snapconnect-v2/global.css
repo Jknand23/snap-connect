@@ -1,0 +1,244 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sleek Theme CSS Variables */
+:root {
+  /* Base Colors */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8FAFC;
+  --bg-tertiary: #F1F5F9;
+  --bg-elevated: #FFFFFF;
+
+  /* Text Colors */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-tertiary: #94A3B8;
+  --text-inverse: #FFFFFF;
+
+  /* Border Colors */
+  --border-light: #E2E8F0;
+  --border-medium: #CBD5E1;
+  --border-strong: #94A3B8;
+
+  /* Dynamic Team Colors */
+  --team-primary: #0066FF;
+  --team-secondary: #0052CC;
+  --team-accent: #001A66;
+}
+
+/* Dark Mode - Sleek Black Theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #000000;
+    --bg-secondary: #0A0A0A;
+    --bg-tertiary: #1A1A1A;
+    --bg-elevated: #111111;
+
+    --text-primary: #FFFFFF;
+    --text-secondary: #E5E5E5;
+    --text-tertiary: #9CA3AF;
+    --text-inverse: #000000;
+
+    --border-light: #1F1F1F;
+    --border-medium: #2A2A2A;
+    --border-strong: #404040;
+  }
+}
+
+.dark {
+  --bg-primary: #000000;
+  --bg-secondary: #0A0A0A;
+  --bg-tertiary: #1A1A1A;
+  --bg-elevated: #111111;
+
+  --text-primary: #FFFFFF;
+  --text-secondary: #E5E5E5;
+  --text-tertiary: #9CA3AF;
+  --text-inverse: #000000;
+
+  --border-light: #1F1F1F;
+  --border-medium: #2A2A2A;
+  --border-strong: #404040;
+}
+
+/* Sleek Component Classes */
+@layer components {
+  /* Button Styles - Sharp and Modern */
+  .btn-primary {
+    @apply bg-interactive text-white px-5 py-2.5 rounded-md font-medium;
+  }
+
+  .btn-team {
+    @apply bg-team-primary text-white px-5 py-2.5 rounded-md font-medium;
+  }
+
+  .btn-glass {
+    @apply bg-glass-light text-dark-text-primary px-5 py-2.5 rounded-md font-medium border border-glass-border-light;
+  }
+
+  .btn-live {
+    @apply bg-live-indicator text-white px-5 py-2.5 rounded-md font-medium;
+  }
+
+  /* Card Styles - Minimal and Clean */
+  .card {
+    @apply bg-dark-bg-secondary border border-dark-border-light;
+  }
+
+  .card-minimal {
+    @apply bg-dark-bg-secondary p-3 border-l-2 border-l-dark-border-accent;
+  }
+
+  .card-sleek {
+    @apply bg-dark-bg-accent p-4 border border-dark-border-medium;
+  }
+
+  .card-news {
+    @apply card-sleek border-l-2 border-l-team-primary;
+  }
+
+  .card-live {
+    @apply card-sleek border-l-2 border-l-live-indicator;
+  }
+
+  .card-interactive {
+    @apply card-sleek border border-interactive bg-dark-bg-elevated;
+  }
+
+  /* Input Styles - Clean and Sharp */
+  .input {
+    @apply bg-dark-bg-tertiary border border-dark-border-medium rounded-md px-3 py-2.5 text-base text-dark-text-primary;
+  }
+
+  .input:focus {
+    @apply border-interactive bg-dark-bg-elevated;
+  }
+
+  .input-minimal {
+    @apply bg-transparent border-b border-b-dark-border-medium px-0 py-2 rounded-none text-dark-text-primary;
+  }
+
+  /* Typography Classes - Sharp and Refined */
+  .headline-1 {
+    @apply text-4xl font-bold tracking-tight;
+  }
+
+  .headline-2 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+
+  .headline-3 {
+    @apply text-xl font-semibold tracking-wide;
+  }
+
+  .headline-live {
+    @apply text-2xl font-bold tracking-wide text-live-indicator;
+  }
+
+  .body-large {
+    @apply text-base font-normal leading-relaxed;
+  }
+
+  .body-medium {
+    @apply text-sm font-normal leading-normal;
+  }
+
+  .body-small {
+    @apply text-xs font-normal leading-tight tracking-wide;
+  }
+
+  .label {
+    @apply text-xs font-medium tracking-wider uppercase;
+  }
+
+  .caption {
+    @apply text-xs font-normal text-dark-text-tertiary tracking-wide;
+  }
+
+  /* Sports-Specific Classes */
+  .sports-indicator {
+    @apply w-1 h-4 rounded-full mr-2;
+  }
+
+  .sports-badge {
+    @apply px-2 py-0.5 rounded-md text-xs font-medium tracking-wide;
+  }
+
+  .live-badge {
+    @apply sports-badge bg-live-indicator text-white animate-pulse-live;
+  }
+
+  .team-badge {
+    @apply sports-badge bg-team-primary text-white;
+  }
+
+  .score-display {
+    @apply font-numeric text-lg font-bold tracking-wider;
+  }
+
+  /* Interactive Elements */
+  .interactive-item {
+    @apply transition-all duration-fast hover:bg-dark-bg-elevated;
+  }
+
+  .interactive-border {
+    @apply border-l-2 border-l-transparent hover:border-l-interactive;
+  }
+
+  /* Glass Effects - Subtle and Modern */
+  .glass-panel {
+    @apply bg-glass-dark border border-glass-border-dark p-4;
+  }
+
+  .glass-overlay {
+    @apply bg-glass-light border border-glass-border-light;
+  }
+
+  /* Status Indicators */
+  .status-online {
+    @apply w-2 h-2 bg-active-indicator rounded-full animate-pulse-gentle;
+  }
+
+  .status-live {
+    @apply w-2 h-2 bg-live-indicator rounded-full animate-pulse-live;
+  }
+
+  /* Layout Utilities */
+  .section-header {
+    @apply flex items-center justify-between mb-3;
+  }
+
+  .content-grid {
+    @apply space-y-2;
+  }
+
+  .action-row {
+    @apply flex items-center space-x-3;
+  }
+
+  /* Animation Classes */
+  .fade-in {
+    @apply animate-fade-in;
+  }
+
+  .slide-up {
+    @apply animate-slide-up;
+  }
+
+  .scale-in {
+    @apply animate-scale-in;
+  }
+
+  .pulse-live {
+    @apply animate-pulse-live;
+  }
+
+  .pulse-gentle {
+    @apply animate-pulse-gentle;
+  }
+
+  .glow-effect {
+    @apply animate-glow;
+  }
+} 
