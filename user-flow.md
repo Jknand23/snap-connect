@@ -32,16 +32,18 @@ This document outlines the comprehensive user journey through the AI-powered spo
 
 5. **Main Feed Access**
    - User lands on camera screen with three tabs on the bottom (Discovery, Camera, and Messages) 
-   - Discover displays mix of: friends' stories, team news, personalized content suggestions
-   - AI-curated content based on user's team/player preferences
+   - Discovery always displays Stories section at top, followed by tabbed content sections
+   - Four content tabs available: "For You" (default), "Scores", "Highlights", "News"
    - Messages shows personal and community messages
 
 6. **Content Consumption Navigation**
-   - User can navigate between different content types:
-     - Friends' content (traditional Snapchat-style)
-     - Sports news feed (consolidated from multiple sources)
-     - Real-time game highlights and updates
-     - Community discussions and fan interactions
+   - User navigates between tabbed sections in Discovery:
+     - **For You** (default): AI-curated personalized content for user's teams, insider information (press conferences, practice reports), and friend content
+     - **Scores**: Live game scores, standings, and statistics for followed teams
+     - **Highlights**: Video highlights, key moments, and game recaps
+     - **News**: Latest sports news, breaking updates, and articles
+   - Stories remain visible at top regardless of selected tab
+   - User can seamlessly switch between content types without losing context
 
 ### 3. Content Creation & Sharing
 
@@ -65,9 +67,11 @@ This document outlines the comprehensive user journey through the AI-powered spo
    - Engages with other fans' content (reactions, comments)
 
 10. **Group Messaging & Events**
-    - User creates or joins group chats for specific games/events
-    - Participates in live commentary during games
-    - Organizes viewing parties or meetups with other fans
+    - User creates or joins group chats for specific games/events with ephemeral messaging
+    - Participates in live commentary where messages disappear after ALL members view them
+    - Sees view tracking indicators showing which group members have seen each message
+    - Messages remain until everyone has read them, then disappear when all members leave chat
+    - Organizes viewing parties or meetups with coordinated ephemeral communication
 
 ### 5. Personalized Content Discovery
 
@@ -106,9 +110,10 @@ This document outlines the comprehensive user journey through the AI-powered spo
 - **Creation Patterns** influence AR filter recommendations and content suggestions
 
 ### Cross-Feature User Scenarios
-- **Game Day Flow**: News feed → Live highlights → Community discussion → Group messaging → Content creation → Story sharing
-- **Off-Season Flow**: News updates → Player content → Community engagement → Friend discovery → Content sharing
-- **Discovery Flow**: Personalized suggestions → New team interest → Join community → Make connections → Enhanced content
+- **Game Day Flow**: "For You" tab → "Scores" tab (live updates) → "Highlights" tab (key moments) → Community discussion → Group messaging → Content creation → Story sharing
+- **Off-Season Flow**: "News" tab (latest updates) → "For You" tab (insider information, practice reports) → Community engagement → Friend discovery → Content sharing
+- **Discovery Flow**: "For You" tab (personalized suggestions) → New team interest → "Scores"/"Highlights" tabs for new team → Join community → Make connections → Enhanced content
+- **Content Exploration Flow**: Stories viewing → "Highlights" tab → "News" tab → "For You" tab → Save/share content → Return to specific tab context
 
 ## User Retention Loops
 

@@ -58,7 +58,7 @@ Build the essential Snapchat-style functionality with basic sports integration. 
 
 **Steps**:
 1. Create user stories system with 24-hour expiration
-2. Implement story viewing interface with swipe navigation
+2. Implement inline story viewing modal within Discovery screen
 3. Build direct message sharing for disappearing content
 4. Add story privacy controls (public, friends, specific teams)
 5. Create content reporting and moderation system
@@ -66,26 +66,36 @@ Build the essential Snapchat-style functionality with basic sports integration. 
 **Acceptance Criteria**:
 - Users can post content to their stories
 - Stories expire automatically after 24 hours
-- Story viewing interface matches Snapchat UX patterns
+- Story viewing interface shows in modal overlay within Discovery tab
+- Users return to Discovery feed after viewing stories
 - Content can be shared privately between users
 - Privacy settings control story visibility appropriately
 
 ### 4. Real-Time Messaging System
-**Objective**: Enable private and group conversations between sports fans
+**Objective**: Enable private and group conversations between sports fans with ephemeral messaging
 
 **Steps**:
 1. Implement real-time messaging using Supabase Realtime
 2. Create chat interface with sports-themed message bubbles
-3. Build group chat functionality for team-based discussions
+3. Build group chat functionality for team-based discussions with group disappearing messages
 4. Add message reactions with sports emojis and team icons
-5. Implement message encryption and disappearing messages
+5. Implement sophisticated disappearing messages system
+
+**Ephemeral Messaging Features**:
+- **Direct Messages**: Messages disappear after recipient views them AND when no users are actively in the chat
+- **Group Messages**: Messages disappear only after ALL group members have viewed the message
+- **View Tracking**: Sophisticated system tracks who has viewed each message
+- **Presence Awareness**: Chat presence tracking ensures messages don't disappear while users are active
+- **Real-time Updates**: Message disappearance triggers real-time notifications to all participants
 
 **Acceptance Criteria**:
 - Messages send and receive in real-time
-- Group chats support multiple participants
+- **Private messages disappear after recipient views them (when both users leave chat)**
+- **Group messages disappear only after every member has viewed them**
+- Group chats support multiple participants with member-specific view tracking
 - Message reactions work with sports-themed emojis
-- Disappearing messages delete automatically
-- Chat history loads efficiently for previous conversations
+- Chat history loads efficiently while respecting disappearing message state
+- View status indicators show which group members have seen each message
 
 ### 5. Sports Onboarding & User Preferences
 **Objective**: Personalize app experience based on user's sports interests
@@ -121,22 +131,34 @@ Build the essential Snapchat-style functionality with basic sports integration. 
 - Mutual connections suggested based on sports preferences
 - User safety features prevent harassment
 
-### 7. Content Feed & Discovery
-**Objective**: Display relevant sports content from friends and followed users
+### 7. Discovery Feed & Content Discovery
+**Objective**: Display relevant sports content with tabbed sections for different content types
 
 **Steps**:
-1. Create personalized home feed algorithm based on sports preferences
-2. Implement pull-to-refresh and infinite scroll functionality
-3. Build content interaction system (likes, comments, shares)
-4. Add trending sports content discovery section
-5. Create search functionality for users and sports-related content
+1. Create persistent Stories section at top of Discovery tab (always visible)
+2. Implement tabbed navigation with "Scores", "Highlights", "News", and "For You" sections
+3. Build "For You" tab as default with personalized content algorithm based on sports preferences
+4. Add "Scores" tab with live game scores and standings for user's followed teams
+5. Create "Highlights" tab with video highlights and key moments from recent games
+6. Implement "News" tab with latest sports news articles and breaking updates
+7. Add insider information section in "For You" tab (press conferences, practice reports)
+8. Implement pull-to-refresh and infinite scroll functionality for each tab
+9. Build content interaction system (likes, comments, shares) across all tabs
+10. Create search functionality for users and sports-related content
 
 **Acceptance Criteria**:
-- Home feed displays relevant content from followed users
-- Feed refreshes properly and loads more content on scroll
-- Users can interact with posts through likes and comments
-- Trending section highlights popular sports content
-- Search finds users and content based on sports context
+- Stories section remains visible at top of Discovery tab at all times
+- Four content tabs are accessible via horizontal button navigation below Stories
+- "For You" tab is the default selected tab on app launch
+- "For You" tab displays personalized content based on user's followed teams and players
+- "For You" tab includes insider information like press conferences and practice updates
+- "Scores" tab shows real-time scores and standings for user's teams
+- "Highlights" tab displays video content and key game moments
+- "News" tab shows latest sports news and breaking updates
+- Users can seamlessly switch between tabs without losing scroll position
+- Each tab refreshes properly and loads more content on scroll
+- Content interaction features work consistently across all tabs
+- Search functionality works across all content types
 
 ## Technical Implementation Details
 
@@ -237,17 +259,23 @@ CREATE TABLE user_sports_preferences (
 - [ ] Users can capture and share sports-themed content
 - [ ] Stories post and expire correctly within 24 hours
 - [ ] Real-time messages work between all users
+- [x] **Private messages disappear after recipient views them (when both users leave chat)** ✅
+- [x] **Group messages disappear only after every member has viewed them** ✅
+- [x] **View tracking shows which group members have seen each message** ✅
 - [ ] Sports onboarding collects user preferences
 - [ ] Friend connections based on sports interests
 - [ ] Content feed displays relevant sports content
 - [ ] Camera AR filters apply team branding correctly
 - [ ] App handles 100+ concurrent users without performance issues
 - [x] **Profile navigation and sign out functionality works** ✅
+- [x] **Group messaging with coordinated ephemeral behavior implemented** ✅
 
 ## User Acceptance Criteria
 - **New User Journey**: User completes registration → sports onboarding → captures first content → shares to story → connects with sports friends
-- **Daily Usage**: User opens app → views friend stories → captures game reaction → sends to group chat → discovers new sports content
-- **Social Interaction**: User finds other fans → sends friend request → joins team-based group chat → shares exclusive content
+- **Daily Usage**: User opens app on Camera tab → captures game reaction → navigates to Discovery tab → views Stories at top → switches to "Scores" tab for live updates → moves to "Highlights" tab for video content → navigates to Messages tab → sends to group chat
+- **Social Interaction**: User finds other fans in Discovery "For You" tab → sends friend request → joins team-based group chat → shares exclusive content from "Highlights" or "News" tabs
+- **Navigation Flow**: User navigates between Discovery (with persistent Stories and tabbed content), Camera (capture), and Messages (conversations) tabs seamlessly
+- **Content Discovery Flow**: User starts in "For You" tab (default) → switches to "Scores" for game updates → moves to "Highlights" for video content → checks "News" for articles → returns to "For You" for personalized content
 - **Profile Management** ✅: User accesses profile from Messages header → views profile information → signs out with confirmation → returns to auth flow
 
 ## Known Limitations

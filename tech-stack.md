@@ -114,22 +114,34 @@ presets: [
   - Sub-second performance for live sports updates
   - Built-in PostgreSQL integration
   - WebSocket-based with automatic reconnection
+  - Perfect for ephemeral messaging system
+
+#### **Ephemeral Messaging Architecture**
+- **Direct Messages**: Disappear after recipient views AND both users leave chat
+- **Group Messages**: Disappear only after ALL members have viewed the message
+- **View Tracking**: Real-time updates on message view status across participants
+- **Presence System**: Tracks active users to prevent premature message deletion
+- **Smart Cleanup**: Messages only delete when safe (no active viewers)
 
 #### **Best Practices**
 - **Connection Management**: Implement connection pooling and cleanup
 - **Error Handling**: Graceful degradation when real-time fails
 - **Subscription Limits**: Monitor active subscriptions to avoid hitting limits
 - **Filtering**: Use Row Level Security (RLS) for subscription filtering
+- **Message Lifecycle**: Track view status and presence for ephemeral behavior
+- **Group Coordination**: Ensure all group members view messages before deletion
 
 #### **Limitations**
 - **Bandwidth**: High data usage for frequent updates
 - **Battery Drain**: Persistent connections impact battery life
 - **Scaling**: Connection limits may require horizontal scaling
+- **Complexity**: Group message coordination requires sophisticated state management
 
 #### **Conventions**
-- **Channel Naming**: Use hierarchical naming (sport:team:player)
+- **Channel Naming**: Use hierarchical naming (sport:team:player, chat:group:members)
 - **Event Types**: Standardize event types across different data sources
 - **Cleanup**: Always unsubscribe on component unmount
+- **View Events**: Consistent view tracking events for ephemeral message coordination
 
 ---
 

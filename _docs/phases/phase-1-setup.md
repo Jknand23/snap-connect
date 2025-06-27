@@ -54,8 +54,8 @@ Establish the basic technical foundation and project structure. This phase creat
 
 **Steps**:
 1. Set up React Navigation v6 with stack and tab navigators
-2. Create placeholder screens for main sections (Home, Camera, Messages, Profile)
-3. Implement basic bottom tab navigation with sports-themed icons
+2. Create placeholder screens for main sections (Discovery, Camera, Messages) with Profile accessible from Messages
+3. Implement basic bottom tab navigation with sports-themed icons for the three main tabs
 4. Add navigation TypeScript types and proper screen props
 5. Create basic screen layouts with glassmorphic styling
 
@@ -127,8 +127,9 @@ SnapConnect-V2/
 │   │   └── common/
 │   ├── features/
 │   │   ├── auth/
-│   │   ├── home/
+│   │   ├── discovery/
 │   │   ├── camera/
+│   │   ├── messages/
 │   │   └── profile/
 │   ├── services/
 │   │   ├── api/

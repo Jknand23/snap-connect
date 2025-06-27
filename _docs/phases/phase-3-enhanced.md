@@ -276,11 +276,11 @@ CREATE TABLE communities (
 - [ ] RAG system maintains 90%+ sports fact accuracy
 
 ## User Experience Enhancements
-- **Personalized Home Feed**: AI-curated content based on user behavior
+- **Personalized Discovery Feed**: AI-curated content in Discovery tab based on user behavior
 - **Live Game Experience**: Real-time scores with instant community reactions
 - **Smart Notifications**: Context-aware alerts that don't overwhelm
-- **Content Discovery**: Trending sports conversations and breaking news
-- **Community Participation**: Easy-to-join discussions with moderation
+- **Enhanced Content Discovery**: Trending sports conversations and breaking news in Discovery
+- **Community Participation**: Easy-to-join discussions with moderation accessible from Messages
 
 ## Risk Management
 - **API Costs**: Implement caching and rate limiting to control expenses
