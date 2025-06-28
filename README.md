@@ -21,7 +21,7 @@ SnapConnect V2 is an innovative AI-first social media platform designed specific
 
 ### MVP (Phase 1) ✅ COMPLETED WITH ENHANCED DESIGN
 - ✅ Real-time photo/video sharing with disappearing messages
-- ✅ Basic AR filters and camera effects  
+- ✅ Basic 2D sports-themed overlays and camera effects  
 - ✅ User authentication and friend management
 - ✅ Stories and group messaging functionality
 - ✅ Complete 4-tab navigation (Home, Messages, Camera, Discovery)
@@ -36,7 +36,7 @@ SnapConnect V2 is an innovative AI-first social media platform designed specific
 - 🚀 Real-time game highlights and updates
 - 🚀 Interactive fan communities
 - 🚀 Advanced AI-powered content personalization
-- 🚀 Team-specific AR filters and experiences
+- 🚀 Team-specific 2D overlays and visual experiences
 
 ### Supported Sports
 - **NFL** (National Football League)
@@ -56,8 +56,8 @@ Our platform addresses unique challenges that sports fans face, going beyond bas
 ### **3. AI-Generated Content Summaries**
 *As a busy sports enthusiast, I want to get quick, AI-generated summaries of games I missed, so that I can catch up on the action without watching full replays.*
 
-### **4. Team-Specific AR Personalization**
-*As a creative sports fan, I want to use team-specific AR filters and effects when creating content, so that I can show my team pride and create engaging posts that reflect my fandom.*
+### **4. Team-Specific Visual Personalization**
+*As a creative sports fan, I want to use team-specific 2D overlays and effects when creating content, so that I can show my team pride and create engaging posts that reflect my fandom.*
 
 ### **5. Multi-Platform Sports Consolidation**
 *As a multi-team fan, I want to track live games and get real-time highlights from multiple matches simultaneously, so that I can follow all the action without switching between different apps.*
@@ -335,7 +335,7 @@ ERROR index.ts: Use process(css).then(cb) to work with async plugins
 ### AI Features
 - **Personalized News**: Custom sports news summaries
 - **Smart Highlights**: AI-curated game highlights
-- **AR Filter Suggestions**: Context-aware filter recommendations
+- **Overlay Suggestions**: Context-aware 2D overlay recommendations
 - **Community Insights**: AI-powered fan discussion summaries
 
 ## 📈 Performance Goals

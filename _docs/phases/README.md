@@ -46,7 +46,7 @@ This directory contains the iterative development plan for building the AI-power
 - RAG-powered content personalization
 - Live sports data integration (scores, updates)
 - Enhanced community features and moderation
-- Advanced AR filters with native camera
+- Advanced 2D overlays with native camera
 - Intelligent notifications and engagement
 - Sports content discovery and trending
 
@@ -95,7 +95,7 @@ graph TD
 | 1 | Expo + NativeWind v4 | Supabase Basic | None | None |
 | 2 | React Navigation | Real-time Features | Basic Sports Data | Expo Camera |
 | 3 | Enhanced UI | Vector DB + Edge Functions | OpenAI GPT-4 + RAG | Native Camera |
-| 4 | Global Localization | Enterprise Analytics | Advanced ML Models | Professional AR |
+| 4 | Global Localization | Enterprise Analytics | Advanced ML Models | Professional Overlays |
 
 ## Success Metrics by Phase
 
@@ -116,7 +116,7 @@ graph TD
 - [ ] AI content generation under 3 seconds
 - [ ] Live sports data updates within 10 seconds
 - [ ] Community engagement increases 200%
-- [ ] Advanced AR filters functional
+- [ ] Advanced 2D overlays functional
 - [ ] Personalization accuracy above 85%
 
 ### Phase 4 Success Criteria

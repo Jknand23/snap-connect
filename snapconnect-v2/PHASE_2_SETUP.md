@@ -60,7 +60,7 @@ npm run android
 
 2. **Camera System**
    - Photo/video capture
-   - Basic AR filters
+   - Basic 2D sports-themed overlays
    - Sports-themed overlays
 
 3. **Stories System**

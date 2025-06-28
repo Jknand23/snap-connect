@@ -475,7 +475,7 @@ const glassStyles = {
 const CameraOverlay: React.FC = () => (
   <View className="absolute inset-0 flex items-end p-6">
     <View className="bg-black/30 backdrop-blur-2 rounded-xl p-4 max-w-xs">
-      <Text className="text-white font-medium">AR Filter Controls</Text>
+      <Text className="text-white font-medium">2D Overlay Controls</Text>
     </View>
   </View>
 );
@@ -821,19 +821,19 @@ export class SportsDataService {
 }
 ```
 
-### **AI-Powered AR Filter Generation**
+### **AI-Powered 2D Overlay Generation**
 ```typescript
 /**
- * AR Filter Service
+ * 2D Overlay Service
  * 
- * Generates personalized AR filters based on user's team preferences
+ * Generates personalized 2D overlays based on user's team preferences
  * and current sports context.
  */
-export class ARFilterService {
+export class OverlayService {
   /**
-   * Generates team-specific AR filters
+   * Generates team-specific 2D overlays
    */
-  async generateTeamFilters(teamId: string): Promise<ARFilter[]> {
+  async generateTeamOverlays(teamId: string): Promise<TeamOverlay[]> {
     const team = await this.getTeamData(teamId);
     
     return [
@@ -861,18 +861,18 @@ export class ARFilterService {
   }
   
   /**
-   * AI-generated contextual filters based on current game state
+   * AI-generated contextual overlays based on current game state
    */
-  async generateContextualFilters(gameContext: GameContext): Promise<ARFilter[]> {
-    const prompt = `Generate AR filter suggestions for ${gameContext.situation}`;
+  async generateContextualOverlays(gameContext: GameContext): Promise<TeamOverlay[]> {
+    const prompt = `Generate 2D overlay suggestions for ${gameContext.situation}`;
     
     const suggestions = await this.aiContentService.generateContent({
       query: prompt,
       userContext: gameContext.userContext,
-      contentType: 'ar-filter-suggestions',
+      contentType: '2d-overlay-suggestions',
     });
     
-    return this.convertSuggestionsToFilters(suggestions);
+    return this.convertSuggestionsToOverlays(suggestions);
   }
 }
 ```
@@ -993,7 +993,7 @@ interface Game {
 ```typescript
 // User journey tracking for AI personalization
 interface UserJourneyEvent {
-  eventType: 'content_view' | 'team_follow' | 'game_watch' | 'ar_filter_use';
+  eventType: 'content_view' | 'team_follow' | 'game_watch' | 'overlay_use';
   timestamp: Date;
   userId: string;
   metadata: {

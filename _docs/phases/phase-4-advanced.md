@@ -32,7 +32,7 @@ Transform the AI-powered sports app into a comprehensive professional platform w
 1. Implement creator subscription tiers with exclusive content access
 2. Build virtual gifting system for supporting favorite sports creators
 3. Create sponsored content integration with brand partnerships
-4. Add premium AR filters and effects for paying subscribers
+4. Add premium 2D overlays and effects for paying subscribers
 5. Implement revenue sharing program for top community contributors
 
 **Acceptance Criteria**:

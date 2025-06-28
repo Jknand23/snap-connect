@@ -174,7 +174,7 @@ applyMultiTeamColors(['cowboys', 'lakers']); // Blended theme
 - [ ] Update remaining screens (LoginScreen, Camera, etc.)
 - [ ] Implement glassmorphic navigation components
 - [ ] Add AR overlay styles for camera features
-- [ ] Create team-specific AR filters
+- [ ] Create team-specific 2D overlays
 - [ ] Implement adaptive brightness for outdoor use
 - [ ] Add sports-specific emoji and icon sets
 

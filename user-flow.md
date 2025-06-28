@@ -49,7 +49,7 @@ This document outlines the comprehensive user journey through the AI-powered spo
 
 7. **Camera & AR Experience**
    - User accesses camera interface
-   - Selects from personalized AR filters (team-specific, player-specific)
+   - Selects from personalized 2D overlays (team-specific, player-specific)
    - Creates photo/video content with sports-themed enhancements
 
 8. **Content Publishing Options**
@@ -100,14 +100,14 @@ This document outlines the comprehensive user journey through the AI-powered spo
 ## Feature Interconnections
 
 ### Content Flow Connections
-- **News Feed → Camera**: User sees interesting sports news, creates reaction content with AR filters
+- **News Feed → Camera**: User sees interesting sports news, creates reaction content with 2D overlays
 - **Community → Messaging**: Community discussions lead to private group conversations
 - **Highlights → Stories**: User reshares personalized highlights to their story with commentary
 
 ### AI Personalization Touchpoints
 - **Content Consumption** feeds AI learning (teams watched, articles read, videos viewed)
 - **Social Interactions** inform community suggestions (who to follow, which groups to join)
-- **Creation Patterns** influence AR filter recommendations and content suggestions
+- **Creation Patterns** influence 2D overlay recommendations and content suggestions
 
 ### Cross-Feature User Scenarios
 - **Game Day Flow**: "For You" tab → "Scores" tab (live updates) → "Highlights" tab (key moments) → Community discussion → Group messaging → Content creation → Story sharing

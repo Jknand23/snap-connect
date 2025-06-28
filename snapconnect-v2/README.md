@@ -1,6 +1,6 @@
 # SnapConnect V2 🏈📱
 
-AI-powered personalized Snapchat for sports fans with real-time messaging, AR filters, and RAG-powered content personalization.
+AI-powered personalized Snapchat for sports fans with real-time messaging, 2D sports-themed overlays, and RAG-powered content personalization.
 
 ## 🚀 Phase 1 Setup - Complete
 

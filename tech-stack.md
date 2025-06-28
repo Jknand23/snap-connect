@@ -1,7 +1,7 @@
 # Tech Stack: AI-Powered Sports Snapchat
 
 ## 🎯 **Project Overview**
-AI-first personalized Snapchat for sports fans with real-time messaging, AR filters, and RAG-powered content personalization.
+AI-first personalized Snapchat for sports fans with real-time messaging, 2D sports-themed overlays, and RAG-powered content personalization.
 
 **Platform**: Android-focused development on Windows
 
@@ -391,12 +391,12 @@ presets: [
 
 ### **Phase 2 (Post-Eject)**
 - **Camera**: react-native-vision-camera
-- **AR Processing**: react-native-arcore (Android-specific)
+- **2D Overlay Processing**: react-native-svg for vector graphics and team logos
 - **Media Processing**: react-native-ffmpeg
 - **Image Optimization**: react-native-image-resizer
 
 #### **Best Practices**
-- **Frame Processing**: Implement efficient frame processing for AR features
+- **Overlay Rendering**: Implement efficient SVG rendering for team logos and graphics
 - **Memory Management**: Careful memory management for video processing
 - **Background Processing**: Use background tasks for video processing
 - **Hardware Acceleration**: Leverage hardware acceleration when available
@@ -404,7 +404,7 @@ presets: [
 #### **Limitations**
 - **Platform Differences**: Significant differences between iOS and Android implementations
 - **Battery Usage**: Intensive processing impacts battery life
-- **Device Compatibility**: Not all devices support advanced AR features
+- **Rendering Performance**: Complex overlays may impact camera frame rate
 
 #### **Conventions**
 - **File Formats**: Standardize on modern, efficient file formats

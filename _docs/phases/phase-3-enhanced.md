@@ -59,22 +59,22 @@ Transform the basic social app into an intelligent sports companion by integrati
 - Reputation system rewards positive community engagement
 - Moderation tools maintain community standards
 
-### 4. Advanced AR Filters & Effects
-**Objective**: Upgrade to native camera with sophisticated AR capabilities
+### 4. Advanced 2D Overlays & Effects
+**Objective**: Upgrade to native camera with sophisticated 2D overlay capabilities
 
 **Steps**:
 1. Migrate from Expo Camera to react-native-vision-camera
-2. Implement team-specific AR effects (victory celebrations, player overlays)
-3. Create context-aware filters based on live game situations
-4. Add face filters with team face paint and accessories
-5. Build AR photo booth mode with team mascots and logos
+2. Implement team-specific 2D overlays (victory graphics, player statistics)
+3. Create context-aware overlays based on live game situations
+4. Add dynamic team branding and color integration
+5. Build photo booth mode with team mascots and logos
 
 **Acceptance Criteria**:
-- Advanced AR filters work smoothly on target devices
-- Context-aware filters activate during live games automatically
-- Face detection and overlay effects render properly
-- AR photo booth creates shareable team-branded content
-- Performance maintains 30fps during AR filter usage
+- Advanced 2D overlays work smoothly on target devices
+- Context-aware overlays activate during live games automatically
+- Dynamic team branding and overlay effects render properly
+- Photo booth creates shareable team-branded content
+- Performance maintains 30fps during overlay usage
 
 ### 5. Intelligent Notifications & Engagement
 **Objective**: AI-driven notification system that enhances user engagement
@@ -270,7 +270,7 @@ CREATE TABLE communities (
 - [ ] AI content generation achieves 85%+ user satisfaction rating
 - [ ] Live sports data updates within 10 seconds of real events
 - [ ] Community engagement increases by 200% from Phase 2
-- [ ] Advanced AR filters used in 60%+ of content creation
+- [ ] Advanced 2D overlays used in 60%+ of content creation
 - [ ] Push notification open rates exceed 25%
 - [ ] Sports content discovery leads to 40%+ more user interactions
 - [ ] RAG system maintains 90%+ sports fact accuracy

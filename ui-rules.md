@@ -55,19 +55,19 @@
 - **Swipe accessibility**: Camera accessible via right swipe from main feed
 - **Floating UI elements**: All camera controls use glassmorphic floating design
 - **Gesture controls**: Tap to capture, hold for video, pinch to zoom
-- **Quick access**: One-tap access to most recent AR filters
+- **Quick access**: One-tap access to most recent 2D overlays
 
-### **AR Overlay Standards**
+### **2D Overlay Standards**
 - **Semi-transparent backgrounds**: 20-40% opacity for overlay panels
 - **Blur backdrop filters**: Use backdrop-blur for text readability over camera feed
 - **Minimal text overlay**: Keep text overlays under 2 lines when possible
-- **Safe zones**: Maintain 24pt margins from screen edges for AR elements
+- **Safe zones**: Maintain 24pt margins from screen edges for overlay elements
 
-### **Filter & Effect UI**
-- **Horizontal scrollable**: AR filters in horizontal scrollable list at bottom
-- **Preview thumbnails**: Show filter effect in thumbnail preview
-- **Team-specific grouping**: Group filters by user's favorite teams first
-- **Quick selection**: Double-tap filter thumbnail to apply immediately
+### **Overlay & Effect UI**
+- **Horizontal scrollable**: 2D overlays in horizontal scrollable list at bottom
+- **Preview thumbnails**: Show overlay effect in thumbnail preview
+- **Team-specific grouping**: Group overlays by user's favorite teams first
+- **Quick selection**: Double-tap overlay thumbnail to apply immediately
 
 ---
 

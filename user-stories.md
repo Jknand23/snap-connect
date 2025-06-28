@@ -17,7 +17,7 @@
 6. **As a sports fan, I want to join team-specific groups and participate in pre-game and post-game discussions, so that I can engage with knowledgeable fans and share insights about my teams.**
 
 ### Content Creation & Sharing
-7. **As a creative sports fan, I want to use team-specific AR filters and effects when creating content, so that I can show my team pride and create engaging posts that reflect my fandom.**
+7. **As a creative sports fan, I want to use team-specific 2D overlays and effects when creating content, so that I can show my team pride and create engaging posts that reflect my fandom.**
 
 8. **As a social media user, I want to easily share game highlights, reactions, and sports content with my friends through stories and messages, so that I can spread my enthusiasm and engage my network.**
 

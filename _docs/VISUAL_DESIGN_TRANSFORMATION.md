@@ -169,9 +169,9 @@ SnapConnect V2 has undergone a complete visual transformation, evolving from a b
 - **Group Styling**: Distinct visual treatment for team-based groups
 - **Activity Feeds**: Clean, scannable layouts for sports discussions
 
-### **AR/Camera Interface**
+### **Camera/Overlay Interface**
 - **Glassmorphic Overlays**: Semi-transparent overlays for camera controls
-- **Team Filters**: Integration points for team-specific AR effects
+- **Team Overlays**: Integration points for team-specific 2D effects
 - **Control Styling**: Floating, professional control buttons
 - **Sports Context**: Ready for team logo and color integration
 
@@ -223,7 +223,7 @@ The sophisticated visual design system is now ready to support:
 1. **AI-Powered Personalization**: Dynamic styling based on user preferences
 2. **Advanced Sports Integration**: Live score overlays and team branding
 3. **Enhanced Community Features**: Sophisticated group styling and interactions
-4. **AR/Camera Enhancements**: Professional overlay system for filters
+4. **Camera/Overlay Enhancements**: Professional overlay system for 2D effects
 5. **Real-Time Features**: Sleek UI for live messaging and updates
 
 ---

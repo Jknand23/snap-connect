@@ -58,14 +58,14 @@ Build the essential Snapchat-style functionality with comprehensive sports integ
 
 **Steps**:
 1. Implement Expo Camera with photo/video capture functionality
-2. Create camera interface with sports-themed AR filters (team logos, colors)
+2. Create camera interface with sports-themed 2D overlays (team logos, colors, text)
 3. Build content editor with text overlays, stickers, and basic effects
 4. Add content preview and sharing options interface
 5. Implement media compression and optimization for storage
 
 **Acceptance Criteria**:
 - Users can capture photos and videos with camera
-- Basic AR filters display team logos and colors correctly
+- Basic 2D overlays display team logos and colors correctly
 - Content can be edited with text and visual elements
 - Media files are properly compressed before storage
 - Camera permissions handled gracefully
@@ -185,12 +185,12 @@ Build the essential Snapchat-style functionality with comprehensive sports integ
 import { Camera } from 'expo-camera';
 import * as MediaLibrary from 'expo-media-library';
 
-// Team-based AR filter system
-interface ARFilter {
+// Team-based 2D overlay system
+interface TeamOverlay {
   id: string;
   teamId: string;
   type: 'logo-overlay' | 'team-colors' | 'victory-celebration';
-  config: FilterConfig;
+  config: OverlayConfig;
 }
 ```
 
@@ -282,7 +282,7 @@ CREATE TABLE user_sports_preferences (
 - [ ] Sports onboarding collects user preferences
 - [ ] Friend connections based on sports interests
 - [ ] Content feed displays relevant sports content
-- [ ] Camera AR filters apply team branding correctly
+- [ ] Camera 2D overlays apply team branding correctly
 - [ ] App handles 100+ concurrent users without performance issues
 - [x] **Profile navigation and sign out functionality works** ✅
 - [x] **Group messaging with coordinated ephemeral behavior implemented** ✅
@@ -300,7 +300,7 @@ CREATE TABLE user_sports_preferences (
 - **Profile Management** ✅: User accesses profile from Messages header → views profile information → signs out with confirmation → returns to auth flow
 
 ## Known Limitations
-- Basic AR filters only (no advanced effects)
+- Basic 2D overlays only (no advanced effects or animations)
 - Limited sports data (no live scores or news yet)
 - No AI-powered content recommendations
 - Basic search functionality

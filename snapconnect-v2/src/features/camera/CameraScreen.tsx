@@ -1,6 +1,6 @@
 /**
  * Camera Screen
- * Handles photo/video capture with sports-themed AR filters and effects
+ * Handles photo/video capture with sports-themed overlays and effects
  */
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -27,22 +27,17 @@ import type { ChatWithDetails } from '../../services/messaging/messagingService'
 import { supabase } from '../../services/database/supabase';
 import { StoriesService } from '../../services/stories/storiesService';
 
+// Overlay system imports
+import { overlayManager } from '../../services/overlays/overlayManager';
+import { overlayRenderService } from '../../services/overlays/overlayRenderService';
+import { overlayTemplateService } from '../../services/overlays/overlayTemplateService';
+import { teamAssetService } from '../../services/overlays/teamAssetService';
+import { TeamTextOverlay } from '../../components/camera/overlays/TeamTextOverlay';
+// import { OverlayControls, OverlayPositioningGuide } from '../../components/camera/overlays/OverlayControls';
+import { OverlayTemplateSelector } from '../../components/camera/overlays/OverlayTemplateSelector';
+import type { ActiveOverlay, OverlayTemplate, TeamAsset } from '../../types/overlays';
+
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-
-interface ARFilter {
-  id: string;
-  name: string;
-  emoji: string;
-  type: 'logo-overlay' | 'team-colors' | 'victory-celebration';
-}
-
-// Basic AR filters for Phase 2
-const AR_FILTERS: ARFilter[] = [
-  { id: 'none', name: 'None', emoji: '📷', type: 'logo-overlay' },
-  { id: 'victory', name: 'Victory', emoji: '🎉', type: 'victory-celebration' },
-  { id: 'sports', name: 'Sports', emoji: '⚽', type: 'logo-overlay' },
-  { id: 'champion', name: 'Champion', emoji: '🏆', type: 'victory-celebration' },
-];
 
 interface CameraScreenProps {
   navigation: any;
@@ -50,7 +45,7 @@ interface CameraScreenProps {
 
 /**
  * Camera Screen Component - Handles photo/video capture and sharing
- * Provides Snapchat-style camera interface with AR filters and chat sharing
+ * Provides Snapchat-style camera interface with sports overlays and chat sharing
  */
 export function CameraScreen() {
   const navigation = useNavigation();
@@ -62,7 +57,7 @@ export function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingStartTime, setRecordingStartTime] = useState<Date | null>(null);
-  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+
   const [flash, setFlash] = useState<FlashMode>('off');
   const [showChatSelection, setShowChatSelection] = useState(false);
   const [userChats, setUserChats] = useState<ChatWithDetails[]>([]);
@@ -71,14 +66,39 @@ export function CameraScreen() {
     type: 'photo' | 'video';
   } | null>(null);
 
+  // Overlay system state
+  const [activeOverlays, setActiveOverlays] = useState<ActiveOverlay[]>([]);
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
+  const [showOverlaySelector, setShowOverlaySelector] = useState(false);
+  const [showPositioningGuide, setShowPositioningGuide] = useState(false);
+  const [userTeams, setUserTeams] = useState<TeamAsset[]>([]);
+  const [overlayMode, setOverlayMode] = useState(false);
+  const captureViewRef = useRef<View>(null);
+
   /**
    * Request media library permissions and load chats
    */
   useEffect(() => {
     (async () => {
+      console.log('🚀 CameraScreen useEffect started');
+      
       await MediaLibrary.requestPermissionsAsync();
       await loadUserChats();
+      await loadUserTeams();
+      setupOverlayListeners();
+
+      // Debug overlay templates
+      console.log('🎭 Checking overlay templates...');
+      const templates = overlayTemplateService.getTemplates();
+      console.log('📋 Available templates:', templates.map((t: OverlayTemplate) => ({ id: t.id, name: t.name, category: t.category })));
+
+      console.log('✅ CameraScreen initialization complete');
     })();
+
+    return () => {
+      // Cleanup disabled for debugging
+      // overlayManager.cleanup();
+    };
   }, []);
 
   /**
@@ -86,21 +106,15 @@ export function CameraScreen() {
    */
   async function loadUserChats() {
     try {
-      console.log('🔍 Loading user chats...');
-      
       const chats = await messagingService.getUserChats();
-      console.log('📱 Retrieved chats:', chats?.length || 0);
 
       if (chats && chats.length > 0) {
         setUserChats(chats);
-        console.log('✅ Successfully loaded chats:', chats.map(c => ({ id: c.id, name: c.name, type: c.type })));
       } else {
-        console.log('⚠️ No existing chats found, creating mock chats for testing...');
         await createMockChats();
       }
     } catch (error) {
-      console.error('❌ Error loading chats:', error);
-      // Fallback to mock chats on error
+      console.error('Error loading chats:', error);
       await createMockChats();
     }
   }
@@ -110,8 +124,6 @@ export function CameraScreen() {
    */
   const createMockChats = async () => {
     try {
-      console.log('🔨 Creating mock test chats...');
-      
       const mockChats: ChatWithDetails[] = [
         {
           id: 'demo-story',
@@ -188,11 +200,200 @@ export function CameraScreen() {
       ];
 
       setUserChats(mockChats);
-      console.log('✅ Created mock chats for testing:', mockChats.length);
     } catch (error) {
-      console.error('❌ Error creating mock chats:', error);
+      console.error('Error creating mock chats:', error);
       setUserChats([]);
     }
+  };
+
+  /**
+   * Load user's teams for overlay customization
+   */
+  const loadUserTeams = async () => {
+    try {
+      console.log('🏈 Loading user teams...');
+      const teams = await teamAssetService.getUserTeamAssets();
+      console.log('🏈 User teams loaded:', teams.map(t => ({ id: t.id, name: t.name, abbreviation: t.abbreviation, colors: t.colors })));
+      setUserTeams(teams);
+    } catch (error) {
+      console.error('❌ Error loading user teams:', error);
+      setUserTeams([]);
+    }
+  };
+
+  /**
+   * Setup overlay system listeners
+   */
+  const setupOverlayListeners = () => {
+    const updateOverlays = () => {
+      const currentOverlays = overlayManager.getActiveOverlays();
+      setActiveOverlays(currentOverlays);
+    };
+
+    // Set up listeners for overlay changes
+    // Note: This would typically be event-based, but for now we'll use manual updates
+  };
+
+  /**
+   * Handle template selection from overlay selector
+   */
+  const handleTemplateSelect = async (template: OverlayTemplate, teamId?: string) => {
+    try {
+      console.log('🎯 TEMPLATE SELECT STARTED:', {
+        templateId: template.id,
+        templateName: template.name,
+        teamId,
+        currentOverlaysCount: activeOverlays.length
+      });
+
+      const overlayId = await overlayManager.addOverlayFromTemplate(template, teamId);
+      
+      console.log('📦 OVERLAY MANAGER RESULT:', {
+        overlayId,
+        managerOverlaysCount: overlayManager.getOverlayCount(),
+        managerOverlays: overlayManager.getActiveOverlays().map(o => ({
+          id: o.id,
+          templateId: o.templateId,
+          position: o.position,
+          isVisible: o.isVisible
+        }))
+      });
+
+      if (overlayId) {
+        const newOverlays = overlayManager.getActiveOverlays();
+        console.log('🔄 UPDATING STATE:', {
+          newOverlaysCount: newOverlays.length,
+          overlays: newOverlays.map(o => ({
+            id: o.id,
+            templateId: o.templateId,
+            position: o.position,
+            isVisible: o.isVisible,
+            style: o.style
+          }))
+        });
+
+        setActiveOverlays(newOverlays);
+        setSelectedOverlayId(overlayId);
+        overlayManager.selectOverlay(overlayId);
+        
+        // Enable overlay mode and show positioning guide
+        setOverlayMode(true);
+        setShowPositioningGuide(true);
+        
+        // Close the template selector
+        setShowOverlaySelector(false);
+
+        console.log('✅ TEMPLATE SELECT COMPLETED - State should update now');
+      } else {
+        console.log('❌ OVERLAY ID IS NULL - overlay was not added');
+        Alert.alert('Overlay Limit', 'Maximum number of overlays reached (5)');
+      }
+    } catch (error) {
+      console.error('❌ Error in handleTemplateSelect:', error);
+      Alert.alert('Error', 'Failed to add overlay');
+    }
+  };
+
+  /**
+   * Handle overlay updates (position, style, etc.)
+   */
+  const handleOverlayUpdate = (overlayId: string, updates: Partial<ActiveOverlay>) => {
+    overlayManager.updateOverlay(overlayId, updates);
+    setActiveOverlays(overlayManager.getActiveOverlays());
+  };
+
+  /**
+   * Handle overlay selection
+   */
+  const handleOverlaySelect = (overlayId: string | null) => {
+    overlayManager.selectOverlay(overlayId);
+    setSelectedOverlayId(overlayId);
+    setActiveOverlays(overlayManager.getActiveOverlays());
+    
+    // Show positioning guide when overlay is selected
+    setShowPositioningGuide(overlayId !== null);
+  };
+
+  /**
+   * Handle overlay deletion
+   */
+  const handleOverlayDelete = (overlayId: string) => {
+    overlayManager.deleteOverlay(overlayId);
+    setActiveOverlays(overlayManager.getActiveOverlays());
+    setSelectedOverlayId(null);
+    
+    // Hide positioning guide if no overlays left
+    if (overlayManager.getOverlayCount() === 0) {
+      setShowPositioningGuide(false);
+      setOverlayMode(false);
+    }
+  };
+
+  /**
+   * Handle overlay duplication
+   */
+  const handleOverlayDuplicate = (overlayId: string) => {
+    const newOverlayId = overlayManager.duplicateOverlay(overlayId);
+    if (newOverlayId) {
+      setActiveOverlays(overlayManager.getActiveOverlays());
+      setSelectedOverlayId(newOverlayId);
+      overlayManager.selectOverlay(newOverlayId);
+    } else {
+      Alert.alert('Overlay Limit', 'Maximum number of overlays reached (5)');
+    }
+  };
+
+  /**
+   * Toggle overlay mode
+   */
+  const toggleOverlayMode = () => {
+    const newMode = !overlayMode;
+    setOverlayMode(newMode);
+    
+    if (!newMode) {
+      // Exiting overlay mode
+      setSelectedOverlayId(null);
+      setShowPositioningGuide(false);
+      overlayManager.selectOverlay(null);
+    } else if (activeOverlays.length === 0) {
+      // Entering overlay mode with no overlays - show selector
+      setShowOverlaySelector(true);
+    }
+  };
+
+  /**
+   * Clear all overlays
+   */
+  const clearAllOverlays = () => {
+    Alert.alert(
+      'Clear All Overlays',
+      'Are you sure you want to remove all overlays?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: () => {
+            overlayManager.clearAllOverlays();
+            setActiveOverlays([]);
+            setSelectedOverlayId(null);
+            setShowPositioningGuide(false);
+            setOverlayMode(false);
+          },
+        },
+      ]
+    );
+  };
+
+  /**
+   * Remove all overlays without confirmation (for template selector)
+   */
+  const removeAllOverlays = () => {
+    overlayManager.clearAllOverlays();
+    setActiveOverlays([]);
+    setSelectedOverlayId(null);
+    setShowPositioningGuide(false);
+    setOverlayMode(false);
   };
 
   /**
@@ -202,19 +403,51 @@ export function CameraScreen() {
     if (!cameraRef.current || isRecording) return;
 
     try {
-      console.log('📸 Taking photo with flash mode:', flash);
-      
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: false,
-      });
+      let capturedUri: string;
 
-      console.log('✅ Photo captured:', photo.uri);
-      setLastCapturedMedia({ uri: photo.uri, type: 'photo' });
+      if (activeOverlays.length > 0 && captureViewRef.current) {
+        // Capture with overlays using view-shot
+        
+        // Temporarily hide overlay controls and positioning guide
+        const originalGuideState = showPositioningGuide;
+        setShowPositioningGuide(false);
+        
+        // Wait a frame for UI to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const overlayImageUri = await overlayRenderService.captureHighQuality(
+          captureViewRef,
+          activeOverlays
+        );
+        
+        // Restore guide state
+        setShowPositioningGuide(originalGuideState);
+        
+        if (overlayImageUri) {
+          capturedUri = overlayImageUri;
+        } else {
+          throw new Error('Failed to capture with overlays');
+        }
+      } else {
+        // Regular camera capture
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.8,
+          base64: false,
+        });
+        
+        if (!photo?.uri) {
+          throw new Error('Failed to capture photo');
+        }
+        
+        capturedUri = photo.uri;
+      }
+
+      setLastCapturedMedia({ uri: capturedUri, type: 'photo' });
       setShowChatSelection(true);
+
     } catch (error) {
-      console.error('❌ Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo');
+      console.error('Error capturing photo:', error);
+      Alert.alert('Capture Error', 'Failed to capture photo. Please try again.');
     }
   };
 
@@ -836,38 +1069,20 @@ export function CameraScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        flash={flash}
-        mode="video"
-      >
+      <View ref={captureViewRef} style={styles.captureContainer}>
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          flash={flash}
+          mode="video"
+        >
         {/* Top controls */}
         <View style={styles.topControls}>
           <TouchableOpacity onPress={goBack} style={styles.topButton}>
             <Ionicons name="close" size={30} color="white" />
           </TouchableOpacity>
-          
-          <View style={styles.filterContainer}>
-            <FlatList
-              horizontal
-              data={AR_FILTERS}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.filterButton,
-                    selectedFilter === item.id && styles.selectedFilter
-                  ]}
-                  onPress={() => setSelectedFilter(item.id)}
-                >
-                  <Text style={styles.filterButtonText}>{item.emoji}</Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
+
 
           <TouchableOpacity 
             onPress={toggleFlash} 
@@ -897,13 +1112,7 @@ export function CameraScreen() {
           </View>
         )}
 
-        {/* AR Filter overlay on camera */}
-        {selectedFilter && selectedFilter !== 'none' && (
-          <View style={styles.filterOverlay}>
-            <Text style={styles.filterEmoji}>{selectedFilter}</Text>
-            <Text style={styles.filterText}>GO TEAM!</Text>
-          </View>
-        )}
+
 
         {/* Bottom controls */}
         <View style={styles.bottomControls}>
@@ -912,7 +1121,7 @@ export function CameraScreen() {
             <Ionicons name="camera-reverse" size={30} color="white" />
           </TouchableOpacity>
 
-          <View style={styles.captureContainer}>
+          <View style={styles.captureArea}>
             <Text style={styles.instructionText}>
               {isRecording ? 'Release to stop recording' : 'Tap for photo • Hold for video'}
             </Text>
@@ -928,10 +1137,254 @@ export function CameraScreen() {
             </Pressable>
           </View>
 
-          {/* Placeholder for symmetry */}
-          <View style={styles.flipButton} />
+          {/* Overlay add button */}
+          <TouchableOpacity 
+            onPress={() => setShowOverlaySelector(true)}
+            style={[
+              styles.flipButton,
+              !overlayManager.canAddOverlay() && styles.disabledButton
+            ]}
+            disabled={!overlayManager.canAddOverlay()}
+          >
+            <Ionicons 
+              name="add" 
+              size={30} 
+              color={overlayManager.canAddOverlay() ? "white" : "#666"} 
+            />
+          </TouchableOpacity>
         </View>
+
+        {/* Sports Overlays */}
+        {activeOverlays.map((overlay) => {
+          const teamAsset = userTeams.find(team => team.id === overlay.teamId);
+          
+          // Debug overlay positioning
+          const overlayScreenPos = {
+            left: overlay.position.x * screenWidth,
+            top: overlay.position.y * screenHeight,
+            width: overlay.position.width * screenWidth,
+            height: overlay.position.height * screenHeight,
+          };
+          
+          console.log(`🎯 OVERLAY POSITION DEBUG for "${overlay.customContent}":`, {
+            relativePosition: overlay.position,
+            screenDimensions: { screenWidth, screenHeight },
+            absolutePosition: overlayScreenPos,
+            isOnScreen: {
+              horizontal: overlayScreenPos.left >= 0 && overlayScreenPos.left < screenWidth,
+              vertical: overlayScreenPos.top >= 0 && overlayScreenPos.top < screenHeight,
+              withinBounds: (overlayScreenPos.left + overlayScreenPos.width) <= screenWidth && 
+                           (overlayScreenPos.top + overlayScreenPos.height) <= screenHeight
+            }
+          });
+          
+          return (
+            <TeamTextOverlay
+              key={overlay.id}
+              overlay={overlay}
+              teamAsset={teamAsset}
+              screenWidth={screenWidth}
+              screenHeight={screenHeight}
+            />
+          );
+        })}
+
+
+
+        {/* Overlay edit controls - only show when overlays exist */}
+        {activeOverlays.length > 0 && (
+          <View style={styles.overlayEditControls}>
+            <TouchableOpacity
+              onPress={toggleOverlayMode}
+              style={[styles.editButton, overlayMode && styles.editButtonActive]}
+            >
+              <Ionicons 
+                name="move" 
+                size={20} 
+                color={overlayMode ? "#fff" : "#007AFF"} 
+              />
+              <Text style={[styles.editButtonText, { 
+                color: overlayMode ? "#fff" : "#007AFF" 
+              }]}>
+                {overlayMode ? 'Done' : 'Edit'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={clearAllOverlays}
+              style={styles.editButton}
+            >
+              <Ionicons name="trash" size={20} color="#FF3B30" />
+              <Text style={[styles.editButtonText, { color: "#FF3B30" }]}>
+                Clear
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
       </CameraView>
+      </View>
+
+      {/* DEBUG: Simple template buttons outside modal */}
+      {showOverlaySelector && (
+        <>
+          {/* Victory Template */}
+          <TouchableOpacity
+            onPress={() => {
+              console.log('🔥 VICTORY BUTTON PRESSED!');
+              handleTemplateSelect(
+                {
+                  id: 'victory-simple',
+                  name: 'Victory!',
+                  description: 'Celebrate your teams victory',
+                  category: 'victory',
+                  preview: '🏆',
+                  defaultPosition: { x: 0.1, y: 0.3, width: 0.8, height: 0.2, rotation: 0, scale: 1 },
+                  teamDependent: true,
+                  elements: [
+                    {
+                      id: 'victory-text',
+                      type: 'text',
+                      content: 'VICTORY!',
+                      position: { x: 0, y: 0, width: 1, height: 1, rotation: 0, scale: 1 },
+                      style: {
+                        fontSize: 28,
+                        fontWeight: 'bold',
+                        color: '#FFD700',
+                        textAlign: 'center',
+                        textShadow: true,
+                      },
+                    }
+                  ],
+                },
+                userTeams[0]?.id
+              );
+            }}
+            style={{
+              position: 'absolute',
+              top: 200,
+              left: 20,
+              backgroundColor: '#FF6B35',
+              padding: 15,
+              borderRadius: 10,
+              zIndex: 20000,
+              elevation: 20000,
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
+              🏆 VICTORY
+            </Text>
+          </TouchableOpacity>
+
+          {/* Game Day Template */}
+          <TouchableOpacity
+            onPress={() => {
+              console.log('🏈 GAME DAY BUTTON PRESSED!');
+              handleTemplateSelect(
+                {
+                  id: 'gameday-simple',
+                  name: 'Game Day Hype',
+                  description: 'Get hyped for the game',
+                  category: 'gameday',
+                  preview: '🏈',
+                  defaultPosition: { x: 0.1, y: 0.4, width: 0.8, height: 0.15, rotation: 0, scale: 1 },
+                  teamDependent: true,
+                  elements: [
+                    {
+                      id: 'gameday-text',
+                      type: 'text',
+                      content: 'GAME DAY!',
+                      position: { x: 0, y: 0, width: 1, height: 1, rotation: 0, scale: 1 },
+                      style: {
+                        fontSize: 24,
+                        fontWeight: 'bold',
+                        color: '#FFFFFF',
+                        textAlign: 'center',
+                        textShadow: true,
+                      },
+                    }
+                  ],
+                },
+                userTeams[0]?.id
+              );
+            }}
+            style={{
+              position: 'absolute',
+              top: 200,
+              right: 20,
+              backgroundColor: '#2E8B57',
+              padding: 15,
+              borderRadius: 10,
+              zIndex: 20000,
+              elevation: 20000,
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 14, fontWeight: 'bold' }}>
+              🏈 GAME DAY
+            </Text>
+          </TouchableOpacity>
+
+          {/* Original Test Button */}
+          <TouchableOpacity
+            onPress={() => {
+              console.log('🟢 DEBUG BUTTON WORKING!');
+              handleTemplateSelect(
+                {
+                  id: 'debug-test',
+                  name: 'Debug Test',
+                  description: 'Test overlay',
+                  category: 'victory',
+                  preview: '🚨',
+                  defaultPosition: { x: 0.1, y: 0.3, width: 0.8, height: 0.2, rotation: 0, scale: 1 },
+                  teamDependent: false,
+                  elements: [
+                    {
+                      id: 'debug-text',
+                      type: 'text',
+                      content: 'DEBUG WORKING!',
+                      position: { x: 0, y: 0, width: 1, height: 1, rotation: 0, scale: 1 },
+                      style: {
+                        fontSize: 32,
+                        fontWeight: 'bold',
+                        color: '#FF0000',
+                        backgroundColor: '#FFFF00',
+                        borderRadius: 8,
+                        textAlign: 'center',
+                        borderWidth: 2,
+                        borderColor: '#000000',
+                      },
+                    }
+                  ],
+                },
+                userTeams[0]?.id
+              );
+            }}
+            style={{
+              position: 'absolute',
+              top: 100,
+              right: 20,
+              backgroundColor: '#4CAF50',
+              padding: 15,
+              borderRadius: 10,
+              zIndex: 20000,
+              elevation: 20000,
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>
+              🟢 TEST
+            </Text>
+          </TouchableOpacity>
+        </>
+      )}
+
+      {/* Overlay selector modal - OUTSIDE camera view for proper layering */}
+      <OverlayTemplateSelector
+        visible={showOverlaySelector}
+        onClose={() => setShowOverlaySelector(false)}
+        onTemplateSelect={handleTemplateSelect}
+        userTeams={userTeams}
+        onRemoveAll={removeAllOverlays}
+      />
     </SafeAreaView>
   );
 }
@@ -960,27 +1413,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filterContainer: {
-    flex: 1,
-    marginHorizontal: 20,
-  },
-  filterButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  selectedFilter: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  filterButtonText: {
-    fontSize: 20,
-  },
+
   recordingIndicator: {
     position: 'absolute',
     top: 80,
@@ -1004,25 +1437,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  filterOverlay: {
-    position: 'absolute',
-    top: '40%',
-    left: '50%',
-    transform: [{ translateX: -50 }, { translateY: -50 }],
-    alignItems: 'center',
-  },
-  filterEmoji: {
-    fontSize: 80,
-    marginBottom: 10,
-  },
-  filterText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
+
   bottomControls: {
     position: 'absolute',
     bottom: 50,
@@ -1041,7 +1456,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  captureContainer: {
+  captureArea: {
     alignItems: 'center',
   },
   instructionText: {
@@ -1230,5 +1645,65 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  captureContainer: {
+    flex: 1,
+  },
+  overlayModeControls: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  overlayButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  overlayButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  overlayButtonText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  overlayEditControls: {
+    position: 'absolute',
+    top: 80,
+    right: 20,
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  editButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  editButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 6,
+    color: 'white',
   },
 });

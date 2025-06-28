@@ -5,7 +5,7 @@ Current social media platforms, including existing Snapchat, present significant
 
 Requiring users to navigate multiple platforms to access diverse types of sports content (e.g., news, highlights, fan discussions).
 
-Offering generic Augmented Reality (AR) Lenses and filters that lack personalization to specific teams or fan interests.
+Offering generic visual overlays and filters that lack personalization to specific teams or fan interests.
 
 Making it difficult for fans to easily connect and engage with other like-minded supporters of their favorite teams.
 
@@ -24,7 +24,7 @@ The initial version of the application will include fundamental Snapchat functio
 
 Real-time photo/video sharing with disappearing messages.
 
-Basic AR filters and camera effects, with a focus on quick personalization.
+Basic 2D sports-themed overlays and camera effects, with a focus on quick personalization.
 
 User authentication and friend management (within the new social graph).
 
@@ -87,7 +87,7 @@ Deployment: Successfully deploy a fully functional and accessible mobile applica
 
 Qualitative Goals (RAG Quality & User Experience Focus):
 
-Content Quality: Ensure generated content (e.g., personalized news snippets, AR filter suggestions) accurately matches user interests and preferred writing style.
+Content Quality: Ensure generated content (e.g., personalized news snippets, 2D overlay suggestions) accurately matches user interests and preferred writing style.
 
 Personalization: Demonstrate a clear and measurable improvement in content quality and relevance through user-specific RAG and AI recommendations.
 
