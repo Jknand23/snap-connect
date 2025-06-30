@@ -273,7 +273,7 @@ export class DisappearingMessagesService {
   }
 
   /**
-   * Leave a chat (mark presence as inactive)
+   * Leave chat presence for a specific chat and trigger cleanup
    */
   async leaveChatPresence(chatId: string): Promise<void> {
     try {
@@ -285,6 +285,57 @@ export class DisappearingMessagesService {
       }, 10000); // 10 second delay to ensure no one is coming back
     } catch (error) {
       throw new DatabaseError('Failed to leave chat presence', error);
+    }
+  }
+
+  /**
+   * Leave ALL chat presences (used during logout to ensure complete cleanup)
+   */
+  async leaveAllChatPresences(): Promise<void> {
+    try {
+      const userId = await dbUtils.getCurrentUserId();
+      if (!userId) return;
+
+      // Get all chats user is participating in
+      const { data: userChats, error: chatsError } = await supabase
+        .from('chat_participants')
+        .select('chat_id')
+        .eq('user_id', userId);
+
+      if (chatsError) {
+        console.warn('Failed to fetch user chats for presence cleanup:', chatsError);
+        return;
+      }
+
+      if (!userChats || userChats.length === 0) {
+        console.log('No chats to clean up presence for');
+        return;
+      }
+
+      console.log(`🧹 Cleaning up presence for ${userChats.length} chats on logout`);
+
+      // Set user as inactive in ALL their chats
+      const { error } = await supabase
+        .from('chat_presence')
+        .update({ is_active: false })
+        .eq('user_id', userId)
+        .eq('is_active', true);
+
+      if (error) {
+        console.warn('Failed to update all chat presences on logout:', error);
+        return;
+      }
+
+      console.log(`✅ Updated presence to inactive for ${userChats.length} chats`);
+
+      // Trigger cleanup for all chats with delay to ensure presence is updated
+      setTimeout(async () => {
+        console.log('🧹 Triggering message cleanup after logout presence update');
+        await this.triggerMessageCleanup();
+      }, 2000); // 2 second delay to ensure database updates are committed
+
+    } catch (error) {
+      console.warn('Failed to leave all chat presences on logout:', error);
     }
   }
 

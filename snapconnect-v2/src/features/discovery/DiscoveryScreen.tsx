@@ -33,7 +33,12 @@ import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../stores/authStore';
 import { storiesService, StoryFeed, StoryWithProfile } from '../../services/stories/storiesService';
 import { teamsService } from '../../services/database/teamsService';
+import { supabase } from '../../services/database/supabase';
 import { Database } from '../../types/database';
+import { getPersonalizedSummary, submitRAGFeedback } from '../../services/rag/ragService';
+import { scoresService, GameScore, LeagueScores } from '../../services/sports/scoresService';
+import { getRecentHighlights } from '../../services/highlights/highlightsService';
+import { getIndividualNewsArticles, NewsArticle } from '../../services/news/newsService';
 
 type Team = Database['public']['Tables']['teams']['Row'];
 
@@ -95,6 +100,17 @@ interface DiscoveryContent {
     quarter?: string;
     time_remaining?: string;
   };
+  // AI-specific fields for Phase 3A Week 2
+  aiGenerated?: boolean;
+  cached?: boolean;
+  sourceAttribution?: string;
+  relevanceScore?: number;
+  userFeedback?: 'helpful' | 'not-relevant' | null;
+  // News-specific fields
+  fullContent?: string; // Full article content for expansion
+  summary?: string; // Short summary for collapsed view
+  source_url?: string; // Original article URL
+  published_at?: string; // Publication date
 }
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -117,6 +133,10 @@ export function DiscoveryScreen() {
   
   // Tab state
   const [activeTab, setActiveTab] = useState<ContentTab>('for-you');
+  
+  // News-specific state for expandable articles
+  const [expandedArticles, setExpandedArticles] = useState<Set<string>>(new Set());
+  const [loadingNewsDetails, setLoadingNewsDetails] = useState<Set<string>>(new Set());
 
   // Story viewer state
   const [selectedStoryFeed, setSelectedStoryFeed] = useState<StoryFeed | null>(null);
@@ -232,9 +252,66 @@ export function DiscoveryScreen() {
    */
   async function loadForYouContent() {
     try {
-      // TODO: Implement AI-powered content recommendation service
-      // For now, create mock personalized content
-      createMockForYouContent();
+      // Get the current user's ID for personalization
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      if (!userId) {
+        console.warn('⚠️ No authenticated user found, falling back to mock content');
+        createMockForYouContent();
+        return;
+      }
+
+      // Attempt to fetch AI-powered summary from Edge Function
+      const result = await getPersonalizedSummary(userId);
+
+      if (!result || !result.summary) {
+        console.warn('⚠️ No RAG summary returned, falling back to mock content');
+        createMockForYouContent();
+        return;
+      }
+
+      // Convert summary string into multiple DiscoveryContent items for better engagement
+      const aiContentItems: DiscoveryContent[] = [
+        {
+          id: `ai-summary-${Date.now()}`,
+          type: 'insider',
+          title: 'Your Personalized Sports Briefing',
+          description: result.summary,
+          author: {
+            id: 'snapconnect_ai',
+            username: 'snapconnect_ai',
+            full_name: 'SnapConnect AI',
+            verified: true,
+          },
+          stats: {
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            views: 0,
+          },
+          engagement: {
+            liked: false,
+            saved: false,
+          },
+          timestamp: new Date().toISOString(),
+          tags: ['AI', 'Personalized', 'Sports'],
+          // Add AI-specific metadata for Week 2 enhancements
+          aiGenerated: true,
+          cached: result.cached,
+          sourceAttribution: 'NewsAPI, BallDontLie, API-Sports',
+          relevanceScore: 0.95, // High relevance for personalized content
+        }
+      ];
+
+      // Mix AI content with some mock content for better UX during Week 2
+      const mixedContent = [
+        ...aiContentItems,
+        ...createMockForYouContent().slice(0, 2) // Add 2 mock items for variety
+      ];
+
+      setForYouFeed(mixedContent);
+      console.log(`✅ Loaded AI summary (cached=${result.cached}) + ${mixedContent.length - 1} supplementary items`);
     } catch (error) {
       console.error('❌ Failed to load For You content:', error);
       createMockForYouContent();
@@ -246,24 +323,130 @@ export function DiscoveryScreen() {
    */
   async function loadScoresContent() {
     try {
-      // TODO: Implement live scores API integration
-      createMockScoresContent();
+      console.log('🔄 Loading real-time scores...');
+      
+      const leagueScores = await scoresService.getUserScores();
+      
+      if (leagueScores.length === 0) {
+        // No leagues selected or no games found
+        setScoresFeed([]);
+        console.log('✅ No scores to display (no leagues selected or no games)');
+        return;
+      }
+
+      // Convert league scores to discovery content format
+      const scoresContent: DiscoveryContent[] = [];
+      
+      leagueScores.forEach(leagueData => {
+        leagueData.games.forEach(game => {
+          scoresContent.push({
+            id: game.id,
+            type: 'score',
+            title: `${game.awayTeam.abbreviation} vs ${game.homeTeam.abbreviation}`,
+            description: game.venue || `${game.league} Game`,
+            author: {
+              id: `${game.league.toLowerCase()}-scores`,
+              username: `${game.league.toLowerCase()}_scores`,
+              full_name: `${game.league} Scores`,
+              verified: true,
+            },
+            stats: {
+              likes: 0,
+              comments: 0,
+              shares: 0,
+              views: 0,
+            },
+            engagement: {
+              liked: false,
+              saved: false,
+            },
+            timestamp: game.date,
+            tags: [game.league, game.homeTeam.abbreviation, game.awayTeam.abbreviation],
+            isLive: game.status === 'live',
+                         score: {
+               home_team: game.homeTeam.name,
+               away_team: game.awayTeam.name,
+               home_score: game.homeTeam.score,
+               away_score: game.awayTeam.score,
+               status: game.status === 'scheduled' ? 'upcoming' : 
+                      game.status === 'postponed' ? 'upcoming' : 
+                      game.status,
+               quarter: game.quarter,
+               time_remaining: game.timeRemaining,
+             },
+          });
+        });
+      });
+
+      // Sort by live games first, then by date
+      scoresContent.sort((a, b) => {
+        if (a.isLive && !b.isLive) return -1;
+        if (!a.isLive && b.isLive) return 1;
+        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+      });
+
+      setScoresFeed(scoresContent);
+      console.log(`✅ Loaded ${scoresContent.length} real-time scores from ${leagueScores.length} leagues`);
     } catch (error) {
-      console.error('❌ Failed to load Scores content:', error);
-      createMockScoresContent();
+      console.error('❌ Failed to load real-time scores:', error);
+      // Fallback to empty state instead of mock data
+      setScoresFeed([]);
     }
   }
 
   /**
    * Load highlights and video content
+   * Fetches real video highlights from the database within the last 24 hours
    */
   async function loadHighlightsContent() {
     try {
-      // TODO: Implement highlights API integration
-      createMockHighlightsContent();
+      console.log('🎬 Loading highlights content...');
+      
+      if (!user?.id) {
+        console.log('❌ No user ID available for highlights personalization');
+        setHighlightsFeed([]);
+        return;
+      }
+
+      // Get user's favorite teams for personalized highlights
+      const userFavoriteTeams = favoriteTeams.map(team => team.name);
+      
+      // Fetch real highlights from the database
+      const realHighlights = await getRecentHighlights(
+        user.id,
+        userFavoriteTeams.length > 0 ? userFavoriteTeams : undefined,
+        8 // Limit to 8 highlights for better performance
+      );
+
+      if (realHighlights.length > 0) {
+        // Transform highlights to DiscoveryContent format
+        const highlightContent: DiscoveryContent[] = realHighlights.map(highlight => ({
+          id: highlight.id,
+          type: 'highlight' as const,
+          title: highlight.title,
+          description: highlight.description,
+          media_url: highlight.media_url,
+          thumbnail_url: highlight.thumbnail_url,
+          author: highlight.author,
+          team: highlight.team,
+          stats: highlight.stats,
+          engagement: highlight.engagement,
+          timestamp: highlight.timestamp,
+          tags: highlight.tags,
+          duration: highlight.duration,
+          sourceAttribution: highlight.sourceAttribution,
+        }));
+
+        setHighlightsFeed(highlightContent);
+        console.log(`✅ Loaded ${highlightContent.length} real highlights`);
+      } else {
+        console.log('📺 No recent highlights found');
+        setHighlightsFeed([]);
+      }
     } catch (error) {
       console.error('❌ Failed to load Highlights content:', error);
-      createMockHighlightsContent();
+      // Show empty state on error instead of mock data
+      setHighlightsFeed([]);
     }
   }
 
@@ -272,7 +455,70 @@ export function DiscoveryScreen() {
    */
   async function loadNewsContent() {
     try {
-      // TODO: Implement news API integration
+      if (!user?.id) {
+        console.warn('No user ID available for news content');
+        createMockNewsContent();
+        return;
+      }
+
+      console.log('🗞️ Loading individual news articles...');
+      
+      // Use news service to get individual articles (not summaries)
+      const newsArticles = await getIndividualNewsArticles(user.id, {
+        maxArticles: 10,
+        forceRefresh: false
+      });
+
+      if (newsArticles.length > 0) {
+        // Transform NewsArticle objects to DiscoveryContent format
+        const discoveryNewsItems: DiscoveryContent[] = newsArticles.map((article: NewsArticle) => ({
+          id: article.id,
+          type: 'news' as const,
+          title: article.title,
+          description: article.summary,
+          summary: article.summary,
+          fullContent: article.fullContent,
+          source_url: article.source_url,
+          published_at: article.published_at,
+          media_url: article.media_url,
+          thumbnail_url: article.thumbnail_url,
+          author: {
+            id: `${article.source_name.toLowerCase().replace(/\s+/g, '')}-reporter`,
+            username: `${article.source_name.toLowerCase().replace(/\s+/g, '')}_reporter`,
+            full_name: article.author || article.source_name,
+            avatar_url: `https://via.placeholder.com/100x100/1E40AF/ffffff?text=${article.source_name.charAt(0).toUpperCase()}`,
+            verified: true,
+          },
+          team: article.teams && article.teams.length > 0 ? {
+            id: article.teams[0].toLowerCase(),
+            name: article.teams[0],
+            primary_color: '#1E40AF',
+          } : undefined,
+          stats: {
+            likes: Math.floor(Math.random() * 1000) + 100,
+            comments: Math.floor(Math.random() * 100) + 10,
+            shares: Math.floor(Math.random() * 50) + 5,
+            views: Math.floor(Math.random() * 5000) + 500,
+          },
+          engagement: {
+            liked: false,
+            saved: false,
+          },
+          timestamp: article.published_at,
+          tags: article.tags,
+          aiGenerated: false, // These are real articles, not AI-generated
+          cached: false,
+          sourceAttribution: article.source_name,
+          relevanceScore: article.engagement_score || 0.7,
+          userFeedback: null,
+        }));
+
+        setNewsFeed(discoveryNewsItems);
+        console.log(`✅ Loaded ${discoveryNewsItems.length} individual news articles`);
+        return;
+      }
+
+      console.warn('No news articles available, falling back to mock content');
       createMockNewsContent();
     } catch (error) {
       console.error('❌ Failed to load News content:', error);
@@ -280,10 +526,26 @@ export function DiscoveryScreen() {
     }
   }
 
+
+
+  /**
+   * Get display name for source API
+   */
+  function getSourceDisplayName(sourceApi: string): string {
+    const sourceMap: Record<string, string> = {
+      'newsapi': 'Sports News Network',
+      'ballDontLie': 'NBA Data Central',
+      'apiSports': 'Sports Statistics',
+      'youtube': 'Sports Highlights',
+      'reddit': 'Fan Community',
+    };
+    return sourceMap[sourceApi] || 'Sports Reporter';
+  }
+
   /**
    * Create mock "For You" feed with personalized and insider content
    */
-  function createMockForYouContent() {
+  function createMockForYouContent(): DiscoveryContent[] {
     const mockContent: DiscoveryContent[] = [
       {
         id: 'insider-1',
@@ -376,6 +638,7 @@ export function DiscoveryScreen() {
 
     setForYouFeed(mockContent);
     console.log('✅ Mock For You feed created:', mockContent.length, 'items');
+    return mockContent;
   }
 
   /**
@@ -462,72 +725,7 @@ export function DiscoveryScreen() {
   /**
    * Create mock highlights content
    */
-  function createMockHighlightsContent() {
-    const mockContent: DiscoveryContent[] = [
-      {
-        id: 'highlight-1',
-        type: 'highlight',
-        title: 'Incredible touchdown pass in overtime!',
-        description: 'Watch this amazing 40-yard touchdown that sealed the victory',
-        media_url: 'https://via.placeholder.com/400x300/1E40AF/ffffff?text=Touchdown+Highlight',
-        thumbnail_url: 'https://via.placeholder.com/400x300/1E40AF/ffffff?text=Touchdown+Highlight',
-        author: {
-          id: 'nfl-official',
-          username: 'nfl_highlights',
-          full_name: 'NFL Official',
-          avatar_url: 'https://via.placeholder.com/100x100/1E40AF/ffffff?text=NFL',
-          verified: true,
-        },
-        team: {
-          id: 'team-1',
-          name: 'Dallas Cowboys',
-          primary_color: '#003594',
-        },
-        stats: {
-          likes: 15420,
-          comments: 892,
-          shares: 2341,
-          views: 156000,
-        },
-        engagement: {
-          liked: false,
-          saved: false,
-        },
-        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        tags: ['NFL', 'Cowboys', 'Touchdown', 'Highlight'],
-        duration: 45,
-      },
-      {
-        id: 'highlight-2',
-        type: 'highlight',
-        title: 'LeBron\'s clutch three-pointer',
-        description: 'The King delivers in the final seconds to secure the win',
-        media_url: 'https://via.placeholder.com/400x300/552583/ffffff?text=Clutch+Shot',
-        author: {
-          id: 'nba-highlights',
-          username: 'nba_highlights',
-          full_name: 'NBA Highlights',
-          verified: true,
-        },
-        stats: {
-          likes: 12890,
-          comments: 645,
-          shares: 1890,
-          views: 98400,
-        },
-        engagement: {
-          liked: true,
-          saved: true,
-        },
-        timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        tags: ['NBA', 'Lakers', 'LeBron', 'Clutch'],
-        duration: 30,
-      },
-    ];
-
-    setHighlightsFeed(mockContent);
-    console.log('✅ Mock Highlights feed created:', mockContent.length, 'items');
-  }
+  // Mock highlights function removed - now shows proper empty state when no highlights available
 
   /**
    * Create mock news content
@@ -539,11 +737,16 @@ export function DiscoveryScreen() {
         type: 'news',
         title: 'Trade deadline approaching: Who\'s on the move?',
         description: 'Multiple sources report potential blockbuster deals in the works as deadline nears',
+        summary: 'Multiple sources report potential blockbuster deals in the works as deadline nears. Front offices are reportedly making final calls on key trades.',
+        fullContent: 'Multiple sources report potential blockbuster deals in the works as deadline nears. Front offices across the league are reportedly making final calls on key trades that could reshape the playoff picture. Several All-Star caliber players are rumored to be available, with teams looking to either make a playoff push or begin rebuilding for next season. NBA insiders suggest that this could be one of the most active trade deadlines in recent memory, with at least 5-6 major moves expected before the 3 PM ET cutoff. General managers have been working phones constantly, trying to find the right pieces to complete championship puzzles or maximize future assets. The next 48 hours will be crucial for several franchises.',
         media_url: 'https://via.placeholder.com/400x300/EF4444/ffffff?text=Trade+News',
+        source_url: 'https://example.com/trade-deadline-news',
+        published_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
         author: {
           id: 'sports-news',
           username: 'sports_news',
           full_name: 'Sports News Central',
+          avatar_url: 'https://via.placeholder.com/100x100/EF4444/ffffff?text=SN',
           verified: true,
         },
         stats: {
@@ -558,17 +761,25 @@ export function DiscoveryScreen() {
         },
         timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
         tags: ['NBA', 'Trade', 'Deadline', 'Breaking'],
+        aiGenerated: false,
+        sourceAttribution: 'Sports News Central',
+        userFeedback: null,
       },
       {
         id: 'news-2',
         type: 'news',
         title: 'Injury update: Star player expected to return',
         description: 'Medical team optimistic about recovery timeline for playoff push',
+        summary: 'Medical team optimistic about recovery timeline for playoff push. Team doctors report significant progress in rehabilitation.',
+        fullContent: 'Medical team optimistic about recovery timeline for playoff push. Team doctors report significant progress in rehabilitation, with the star player showing excellent response to treatment protocols. The injury, initially feared to be season-ending, now appears to be healing ahead of schedule. Team medical staff credit the player\'s dedication to the recovery process and advanced treatment methods. If current progress continues, the player could return to action within 2-3 weeks, just in time for the crucial final stretch of the regular season. The team has been cautious not to rush the recovery, prioritizing long-term health over short-term gains. Teammates and coaching staff are reportedly excited about the potential return.',
         media_url: 'https://via.placeholder.com/400x300/10B981/ffffff?text=Injury+Update',
+        source_url: 'https://example.com/injury-update-news',
+        published_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
         author: {
           id: 'medical-reporter',
           username: 'injury_insider',
           full_name: 'Medical Sports Reporter',
+          avatar_url: 'https://via.placeholder.com/100x100/10B981/ffffff?text=MR',
           verified: true,
         },
         stats: {
@@ -583,6 +794,47 @@ export function DiscoveryScreen() {
         },
         timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
         tags: ['Injury', 'Recovery', 'Playoff', 'Update'],
+        aiGenerated: false,
+        sourceAttribution: 'Medical Sports Reporter',
+        userFeedback: null,
+      },
+      {
+        id: 'news-3',
+        type: 'news',
+        title: 'Rookie sensation breaks franchise record',
+        description: 'Young phenom surpasses 30-year-old team record in stunning performance',
+        summary: 'Young phenom surpasses 30-year-old team record in stunning performance against division rivals. Fans and analysts praise incredible talent.',
+        fullContent: 'Young phenom surpasses 30-year-old team record in stunning performance against division rivals. The rookie\'s exceptional display included career-high numbers that left fans and analysts in awe. The previous record had stood since 1994, held by a franchise legend who was in attendance to witness the historic moment. The young player\'s versatility and basketball IQ have been remarkable throughout the season, but last night\'s performance solidified their status as a future superstar. Teammates rallied around the achievement, with veteran players praising the rookie\'s work ethic and dedication. Coaches are already drawing comparisons to some of the greatest players in franchise history. The record-breaking performance has also put the rookie in early conversation for Rookie of the Year honors.',
+        media_url: 'https://via.placeholder.com/400x300/9333EA/ffffff?text=Rookie+Record',
+        source_url: 'https://example.com/rookie-record-news',
+        published_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        author: {
+          id: 'franchise-reporter',
+          username: 'team_insider',
+          full_name: 'Franchise Beat Reporter',
+          avatar_url: 'https://via.placeholder.com/100x100/9333EA/ffffff?text=FR',
+          verified: true,
+        },
+        team: {
+          id: 'team-1',
+          name: 'Local Team',
+          primary_color: '#9333EA',
+        },
+        stats: {
+          likes: 8934,
+          comments: 2156,
+          shares: 1456,
+          views: 45678,
+        },
+        engagement: {
+          liked: false,
+          saved: false,
+        },
+        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        tags: ['Rookie', 'Record', 'Franchise', 'History'],
+        aiGenerated: false,
+        sourceAttribution: 'Franchise Beat Reporter',
+        userFeedback: null,
       },
     ];
 
@@ -766,6 +1018,123 @@ export function DiscoveryScreen() {
       case 'news':
         setNewsFeed(updateFeed);
         break;
+    }
+  }
+
+  /**
+   * Handle RAG feedback for AI-generated content (Phase 3A Week 2)
+   */
+  async function handleRAGFeedback(contentId: string, feedback: 'helpful' | 'not-relevant') {
+    const updateFeed = (prev: DiscoveryContent[]) => 
+      prev.map(item => {
+        if (item.id === contentId && item.aiGenerated) {
+          console.log(`📝 RAG Feedback: ${feedback} for content ${contentId}`);
+          return { ...item, userFeedback: feedback };
+        }
+        return item;
+      });
+
+    // Update the appropriate feed
+    switch (activeTab) {
+      case 'for-you':
+        setForYouFeed(updateFeed);
+        break;
+      case 'scores':
+        setScoresFeed(updateFeed);
+        break;
+      case 'highlights':
+        setHighlightsFeed(updateFeed);
+        break;
+      case 'news':
+        setNewsFeed(updateFeed);
+        break;
+    }
+
+    // Submit feedback to RAG service for learning (Phase 3A Week 2)
+    try {
+      await submitRAGFeedback({
+        contentId,
+        feedbackType: feedback,
+        sourceAttribution: ['NewsAPI', 'BallDontLie', 'API-Sports'],
+        contextMetadata: {
+          content_type: 'news-summary',
+          position_in_feed: 0,
+          source_api: 'multi-source'
+        }
+      });
+
+      Alert.alert(
+        'Feedback Received', 
+        `Thank you! Your feedback helps improve our AI recommendations.`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Failed to submit RAG feedback:', error);
+      Alert.alert(
+        'Feedback Error', 
+        'Failed to submit feedback, but your preference has been saved locally.',
+        [{ text: 'OK' }]
+      );
+    }
+  }
+
+  /**
+   * Handle expanding/collapsing news articles
+   */
+  function toggleArticleExpansion(articleId: string) {
+    setExpandedArticles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(articleId)) {
+        newSet.delete(articleId);
+      } else {
+        newSet.add(articleId);
+      }
+      return newSet;
+    });
+  }
+
+  /**
+   * Handle news-specific feedback with enhanced tracking
+   */
+  async function handleNewsFeedback(articleId: string, feedback: 'helpful' | 'not-relevant') {
+    try {
+      console.log(`📰 News feedback: ${feedback} for article ${articleId}`);
+      
+      // Update the news feed state
+      setNewsFeed(prev => 
+        prev.map(item => {
+          if (item.id === articleId) {
+            return { ...item, userFeedback: feedback };
+          }
+          return item;
+        })
+      );
+
+      // Submit feedback to RAG service with news-specific context
+      await submitRAGFeedback({
+        contentId: articleId,
+        feedbackType: feedback as 'helpful' | 'not-relevant',
+        sourceAttribution: newsFeed.find(item => item.id === articleId)?.sourceAttribution ? 
+          [newsFeed.find(item => item.id === articleId)!.sourceAttribution!] : undefined,
+        contextMetadata: {
+          content_type: 'news',
+          position_in_feed: newsFeed.findIndex(item => item.id === articleId),
+          source_api: newsFeed.find(item => item.id === articleId)?.author.username.replace('_reporter', '') || 'unknown'
+        }
+      });
+
+      Alert.alert(
+        'News Feedback Received', 
+        'Thank you! Your feedback helps us personalize your news experience.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('❌ Failed to submit news feedback:', error);
+      Alert.alert(
+        'Feedback Error', 
+        'Failed to submit feedback, but your preference has been saved.',
+        [{ text: 'OK' }]
+      );
     }
   }
 
@@ -962,7 +1331,7 @@ export function DiscoveryScreen() {
         <View className={`w-16 h-16 rounded-full p-0.5 ${
           hasUnviewed ? 'bg-gradient-to-r from-blue-500 to-purple-500' : 'bg-gray-600'
         }`}>
-          <View className="w-full h-full rounded-full bg-slate-900 p-0.5">
+          <View className="w-full h-full rounded-full bg-black p-0.5">
             {item.user.avatar_url ? (
               <Image
                 source={{ uri: item.user.avatar_url }}
@@ -1118,7 +1487,7 @@ export function DiscoveryScreen() {
                 onPress={() => handleTabChange(tab.id)}
                 className={`flex-row items-center px-3 py-2 rounded-lg mr-2 ${
                   activeTab === tab.id 
-                    ? 'bg-blue-600' 
+                    ? 'bg-interactive' 
                     : 'bg-gray-800'
                 }`}
               >
@@ -1152,6 +1521,12 @@ export function DiscoveryScreen() {
         {/* Header */}
         <View className="flex-row items-center justify-between p-4 pb-3">
           <View className="flex-row items-center">
+            {/* League Badge */}
+                          <View className="bg-interactive px-2 py-1 rounded mr-2">
+              <Text className="text-white text-xs font-bold">
+                {item.tags?.[0] || 'GAME'}
+              </Text>
+            </View>
             <Text className="text-white font-semibold">
               {item.title}
             </Text>
@@ -1250,106 +1625,378 @@ export function DiscoveryScreen() {
   }
 
   /**
-   * Render discovery content item
+   * Render news article with expansion capability
    */
-  function renderDiscoveryItem({ item }: { item: DiscoveryContent }) {
+  function renderNewsArticle(item: DiscoveryContent) {
+    const isExpanded = expandedArticles.has(item.id);
+    
     return (
-      <View className="bg-gray-800 rounded-xl mb-4 overflow-hidden">
-        {/* Header */}
-        <View className="flex-row items-center justify-between p-4 pb-3">
-          <TouchableOpacity 
-            className="flex-row items-center flex-1"
-            onPress={() => navigation.navigate('UserProfile', { userId: item.author.id })}
-          >
-            {item.author.avatar_url ? (
-              <Image
-                source={{ uri: item.author.avatar_url }}
-                className="w-10 h-10 rounded-full mr-3"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="w-10 h-10 rounded-full bg-gray-600 mr-3 items-center justify-center">
-                <Text className="text-white font-bold">
-                  {item.author.username[0]?.toUpperCase()}
-                </Text>
-              </View>
-            )}
-            
-            <View className="flex-1">
-              <View className="flex-row items-center">
-                <Text className="text-white font-semibold">
-                  {item.author.full_name}
-                </Text>
-                {item.author.verified && (
-                  <Text className="text-blue-500 ml-1">✓</Text>
-                )}
-                {item.isLive && (
-                  <View className="bg-red-500 px-2 py-0.5 rounded-full ml-2">
-                    <Text className="text-white text-xs font-bold">LIVE</Text>
-                  </View>
-                )}
-              </View>
-              <Text className="text-gray-400 text-sm">
-                @{item.author.username} • {formatTimestamp(item.timestamp)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity>
-            <Text className="text-gray-400 text-lg">⋯</Text>
-          </TouchableOpacity>
+      <View className="bg-gray-900 rounded-xl mb-4 overflow-hidden border border-blue-600/20">
+        {/* News indicator */}
+                        <View className="bg-interactive px-3 py-1">
+          <Text className="text-white text-xs font-bold text-center">
+            📰 NEWS ARTICLE
+          </Text>
         </View>
 
         {/* Content */}
-        <View className="px-4 pb-3">
-          <Text className="text-white font-semibold text-base mb-1">
+        <View className="p-4">
+          {/* Header */}
+          <View className="flex-row items-center mb-3">
+            <Image
+              source={{ uri: item.author.avatar_url || 'https://via.placeholder.com/40' }}
+              className="w-8 h-8 rounded-full"
+            />
+            <View className="ml-3 flex-1">
+              <View className="flex-row items-center">
+                <Text className="text-white font-semibold text-sm">
+                  {item.author.full_name}
+                </Text>
+                {item.author.verified && (
+                  <Text className="text-interactive ml-1">✓</Text>
+                )}
+                {item.team && (
+                  <View 
+                    className="ml-2 px-2 py-0.5 rounded"
+                    style={{ backgroundColor: item.team.primary_color + '20' }}
+                  >
+                    <Text 
+                      className="text-xs font-medium"
+                      style={{ color: item.team.primary_color }}
+                    >
+                      {item.team.name}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text className="text-gray-400 text-xs">
+                {formatTimestamp(item.timestamp)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Feedback buttons at the top */}
+          <View className="flex-row items-center justify-between mb-3 p-2 bg-gray-800 rounded-lg">
+            <Text className="text-gray-300 text-sm">Find this article interesting?</Text>
+            <View className="flex-row space-x-2">
+              <TouchableOpacity 
+                onPress={() => handleNewsFeedback(item.id, 'helpful')}
+                className={`px-3 py-1 rounded-lg ${item.userFeedback === 'helpful' ? 'bg-green-600' : 'bg-gray-700'}`}
+              >
+                <Text className={`text-sm ${item.userFeedback === 'helpful' ? 'text-white' : 'text-green-400'}`}>
+                  👍
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={() => handleNewsFeedback(item.id, 'not-relevant')}
+                className={`px-3 py-1 rounded-lg ${item.userFeedback === 'not-relevant' ? 'bg-red-600' : 'bg-gray-700'}`}
+              >
+                <Text className={`text-sm ${item.userFeedback === 'not-relevant' ? 'text-white' : 'text-red-400'}`}>
+                  👎
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text className="text-white font-semibold text-lg mb-2">
             {item.title}
           </Text>
-          {item.description && (
-            <Text className="text-gray-300 text-sm mb-3">
-              {item.description}
+
+          {/* Content - expandable */}
+          <View className="mb-3">
+            <Text className="text-gray-300 text-sm leading-relaxed">
+              {isExpanded ? item.fullContent : (item.summary || item.description)}
             </Text>
-          )}
-          
-          {/* Tags */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3">
-            <View className="flex-row">
-              {item.tags.slice(0, 4).map((tag, index) => (
+            
+            {/* Expansion toggle */}
+            <TouchableOpacity 
+              onPress={() => toggleArticleExpansion(item.id)}
+              className="mt-2 py-2"
+            >
+              <Text className="text-blue-400 text-sm font-medium">
+                {isExpanded ? '📖 Show less' : '📖 Read full article'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Source attribution */}
+          {item.sourceAttribution && (
+            <View className="p-2 bg-black/20 rounded-lg mb-3">
+              <Text className="text-blue-400 text-xs">
+                📰 Source: {item.sourceAttribution}
+              </Text>
+              {item.source_url && (
                 <TouchableOpacity
-                  key={index}
-                  className="bg-blue-600/20 px-3 py-1 rounded-full mr-2"
+                  onPress={() => {
+                    // TODO: Open source URL in browser
+                    console.log('Open source URL:', item.source_url);
+                  }}
                 >
-                  <Text className="text-blue-400 text-xs font-medium">
-                    #{tag}
+                  <Text className="text-blue-300 text-xs mt-1 underline">
+                    View original article
                   </Text>
                 </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Tags */}
+          {item.tags.length > 0 && (
+            <View className="flex-row flex-wrap mb-3">
+              {item.tags.slice(0, 3).map((tag, index) => (
+                <View key={index} className="bg-gray-800 px-2 py-1 rounded mr-2 mb-1">
+                  <Text className="text-gray-400 text-xs">#{tag}</Text>
+                </View>
               ))}
             </View>
-          </ScrollView>
+          )}
         </View>
+
+        {/* Engagement actions */}
+        <View className="flex-row items-center justify-between p-4 pt-0 border-t border-gray-800">
+          <View className="flex-row items-center space-x-6">
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={() => handleContentInteraction(item.id, 'like')}
+            >
+              <Text className={`text-lg mr-1 ${item.engagement.liked ? 'text-red-500' : 'text-gray-400'}`}>
+                {item.engagement.liked ? '❤️' : '🤍'}
+              </Text>
+              <Text className="text-gray-400 text-sm">
+                {formatNumber(item.stats.likes)}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={() => handleContentInteraction(item.id, 'comment')}
+            >
+              <Text className="text-gray-400 text-lg mr-1">💬</Text>
+              <Text className="text-gray-400 text-sm">
+                {formatNumber(item.stats.comments)}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              className="flex-row items-center"
+              onPress={() => handleContentInteraction(item.id, 'share')}
+            >
+              <Text className="text-gray-400 text-lg mr-1">📤</Text>
+              <Text className="text-gray-400 text-sm">
+                {formatNumber(item.stats.shares)}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          <TouchableOpacity onPress={() => handleContentInteraction(item.id, 'save')}>
+            <Text className={`text-lg ${item.engagement.saved ? 'text-yellow-500' : 'text-gray-400'}`}>
+              {item.engagement.saved ? '🔖' : '📋'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  /**
+   * Render discovery content item
+   */
+  function renderDiscoveryItem({ item }: { item: DiscoveryContent }) {
+    // Special rendering for news articles in the news tab
+    if (activeTab === 'news' && item.type === 'news') {
+      return renderNewsArticle(item);
+    }
+
+    // Special rendering for AI-generated content (Phase 3A Week 2)
+    if (item.aiGenerated) {
+      return (
+        <View className="bg-gradient-to-r from-blue-900 to-purple-900 rounded-xl mb-4 overflow-hidden border border-blue-600/30">
+          {/* AI Badge */}
+          <View className="flex-row items-center justify-between p-3 pb-2">
+            <View className="flex-row items-center">
+              <View className="bg-interactive px-2 py-1 rounded-full mr-2">
+                <Text className="text-white text-xs font-bold">🤖 AI GENERATED</Text>
+              </View>
+              {item.cached && (
+                <View className="bg-green-500 px-2 py-1 rounded-full">
+                  <Text className="text-white text-xs">⚡ CACHED</Text>
+                </View>
+              )}
+            </View>
+            <Text className="text-blue-300 text-xs">
+              {formatTimestamp(item.timestamp)}
+            </Text>
+          </View>
+          
+          {/* Content */}
+          <View className="px-4 pb-4">
+            <Text className="text-white font-semibold text-lg mb-2">
+              {item.title}
+            </Text>
+            <Text className="text-gray-300 text-sm leading-relaxed mb-3">
+              {item.description}
+            </Text>
+            
+            {/* Source Attribution */}
+            {item.sourceAttribution && (
+              <View className="p-2 bg-black/20 rounded-lg mb-3">
+                <Text className="text-blue-400 text-xs">
+                  📰 Sources: {item.sourceAttribution}
+                </Text>
+                {item.relevanceScore && (
+                  <Text className="text-gray-500 text-xs mt-1">
+                    Relevance: {Math.round(item.relevanceScore * 100)}%
+                  </Text>
+                )}
+              </View>
+            )}
+            
+            {/* Feedback Buttons */}
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row space-x-4">
+                <TouchableOpacity 
+                  onPress={() => handleRAGFeedback(item.id, 'helpful')}
+                  className={`px-3 py-2 rounded-lg ${item.userFeedback === 'helpful' ? 'bg-green-600' : 'bg-gray-700'}`}
+                >
+                  <Text className={`text-sm ${item.userFeedback === 'helpful' ? 'text-white' : 'text-green-400'}`}>
+                    👍 Helpful
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => handleRAGFeedback(item.id, 'not-relevant')}
+                  className={`px-3 py-2 rounded-lg ${item.userFeedback === 'not-relevant' ? 'bg-red-600' : 'bg-gray-700'}`}
+                >
+                  <Text className={`text-sm ${item.userFeedback === 'not-relevant' ? 'text-white' : 'text-red-400'}`}>
+                    👎 Not relevant
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* Standard engagement buttons */}
+              <View className="flex-row items-center space-x-4">
+                <TouchableOpacity 
+                  className="flex-row items-center"
+                  onPress={() => handleContentInteraction(item.id, 'like')}
+                >
+                  <Text className={`text-lg mr-1 ${item.engagement.liked ? 'text-red-500' : 'text-gray-400'}`}>
+                    {item.engagement.liked ? '❤️' : '🤍'}
+                  </Text>
+                  <Text className="text-gray-400 text-sm">
+                    {formatNumber(item.stats.likes)}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity onPress={() => handleContentInteraction(item.id, 'save')}>
+                  <Text className={`text-lg ${item.engagement.saved ? 'text-yellow-500' : 'text-gray-400'}`}>
+                    {item.engagement.saved ? '🔖' : '📋'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Standard content rendering
+    return (
+      <View className="bg-gray-900 rounded-xl mb-4 overflow-hidden">
+        {/* Live indicator */}
+        {item.isLive && (
+          <View className="bg-red-600 px-3 py-1">
+            <Text className="text-white text-xs font-bold text-center">
+              🔴 LIVE
+            </Text>
+          </View>
+        )}
 
         {/* Media */}
         {item.media_url && (
-          <TouchableOpacity
-            onPress={() => navigation.navigate('ContentDetails', { contentId: item.id })}
-          >
+          <View className="relative">
             <Image
-              source={{ uri: item.media_url }}
-              style={{ width: screenWidth - 32, height: 200 }}
-              className="mx-4 rounded-lg"
+              source={{ uri: item.thumbnail_url || item.media_url }}
+              className="w-full h-48"
               resizeMode="cover"
             />
-            {item.duration && (
+            {/* Video duration indicator for highlights */}
+            {item.type === 'highlight' && item.duration && (
               <View className="absolute bottom-2 right-2 bg-black/70 px-2 py-1 rounded">
-                <Text className="text-white text-xs">
+                <Text className="text-white text-xs font-medium">
                   {Math.floor(item.duration / 60)}:{(item.duration % 60).toString().padStart(2, '0')}
                 </Text>
               </View>
             )}
-          </TouchableOpacity>
+            {/* Play button overlay for video content */}
+            {item.type === 'highlight' && (
+              <View className="absolute inset-0 items-center justify-center">
+                <View className="bg-black/50 rounded-full p-3">
+                  <Text className="text-white text-2xl">▶️</Text>
+                </View>
+              </View>
+            )}
+          </View>
         )}
 
-        {/* Engagement */}
+        {/* Content */}
+        <View className="p-4">
+          {/* Header */}
+          <View className="flex-row items-center mb-3">
+            <Image
+              source={{ uri: item.author.avatar_url || 'https://via.placeholder.com/40' }}
+              className="w-8 h-8 rounded-full"
+            />
+            <View className="ml-3 flex-1">
+              <View className="flex-row items-center">
+                <Text className="text-white font-semibold text-sm">
+                  {item.author.full_name}
+                </Text>
+                {item.author.verified && (
+                  <Text className="text-interactive ml-1">✓</Text>
+                )}
+                {item.team && (
+                  <View 
+                    className="ml-2 px-2 py-0.5 rounded"
+                    style={{ backgroundColor: item.team.primary_color + '20' }}
+                  >
+                    <Text 
+                      className="text-xs font-medium"
+                      style={{ color: item.team.primary_color }}
+                    >
+                      {item.team.name}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text className="text-gray-400 text-xs">
+                {formatTimestamp(item.timestamp)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Title and description */}
+          <Text className="text-white font-semibold text-lg mb-2">
+            {item.title}
+          </Text>
+          {item.description && (
+            <Text className="text-gray-300 text-sm mb-3 leading-relaxed">
+              {item.description}
+            </Text>
+          )}
+
+          {/* Tags */}
+          {item.tags.length > 0 && (
+            <View className="flex-row flex-wrap mb-3">
+              {item.tags.slice(0, 3).map((tag, index) => (
+                <View key={index} className="bg-gray-800 px-2 py-1 rounded mr-2 mb-1">
+                  <Text className="text-gray-400 text-xs">#{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* Engagement actions */}
         <View className="flex-row items-center justify-between p-4 pt-3">
           <View className="flex-row items-center space-x-6">
             <TouchableOpacity 
@@ -1402,10 +2049,10 @@ export function DiscoveryScreen() {
     return (
       <TouchableOpacity
         key={index}
-        className="bg-blue-600/20 px-4 py-2 rounded-full mr-3"
+        className="bg-interactive/20 px-4 py-2 rounded-full mr-3"
         onPress={() => setSearchQuery(topic.replace('#', ''))}
       >
-        <Text className="text-blue-400 font-medium">
+        <Text className="text-interactive font-medium">
           {topic}
         </Text>
       </TouchableOpacity>
@@ -1456,7 +2103,7 @@ export function DiscoveryScreen() {
    */
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-900">
+      <SafeAreaView className="flex-1 bg-black">
         <View className="flex-1 items-center justify-center">
           <Text className="text-white text-lg">Loading your personalized feed...</Text>
           <Text className="text-gray-400 text-sm mt-2">
@@ -1468,14 +2115,14 @@ export function DiscoveryScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-900">
+    <SafeAreaView className="flex-1 bg-black">
       <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            tintColor="#3B82F6"
+            tintColor="#0066FF"
           />
         }
         showsVerticalScrollIndicator={false}
@@ -1513,8 +2160,6 @@ export function DiscoveryScreen() {
           </View>
         )}
 
-
-
         {/* Stories Section */}
         <View className="mb-6">
           <View className="flex-row items-center justify-between px-6 mb-4">
@@ -1522,7 +2167,7 @@ export function DiscoveryScreen() {
               Stories
             </Text>
             {storiesFeed.length > 0 && (
-              <Text className="text-blue-500 text-sm">
+              <Text className="text-interactive text-sm">
                 {storiesFeed.filter(s => s.hasUnviewed).length} new
               </Text>
             )}
@@ -1567,7 +2212,7 @@ export function DiscoveryScreen() {
             </Text>
             <Text className="text-gray-400 text-sm">
               {activeTab === 'for-you' && 'AI-curated content and insider information'}
-              {activeTab === 'scores' && 'Real-time scores for your favorite teams'}
+              {activeTab === 'scores' && 'Live scores from your selected leagues'}
               {activeTab === 'highlights' && 'Best moments and key plays'}
               {activeTab === 'news' && 'Breaking news and updates'}
             </Text>
@@ -1599,8 +2244,8 @@ export function DiscoveryScreen() {
                 </Text>
                 <Text className="text-gray-400 text-center text-sm">
                   {activeTab === 'for-you' && 'Follow teams and players to see personalized content'}
-                  {activeTab === 'scores' && 'Add favorite teams to see their scores'}
-                  {activeTab === 'highlights' && 'Check back later for video highlights'}
+                  {activeTab === 'scores' && 'No games found for your selected leagues today. Check back during the sports season for live scores and updates.'}
+                  {activeTab === 'highlights' && 'No video highlights available from the last 24 hours. Real highlights from your favorite teams will appear here when available.'}
                   {activeTab === 'news' && 'Latest sports news will appear here'}
                 </Text>
               </View>
@@ -1608,13 +2253,23 @@ export function DiscoveryScreen() {
           />
         </View>
 
-        {/* Load More Button */}
+        {/* Load More / Refresh Button */}
         <View className="px-6 py-4 mb-8">
           <Button
-            title="Load More Content"
+            title={
+              activeTab === 'scores' ? 'Refresh Scores' :
+              activeTab === 'for-you' ? 'Refresh Content' :
+              'Load More Content'
+            }
             onPress={() => {
-              // TODO: Implement pagination
-              console.log('Load more content');
+              if (activeTab === 'scores') {
+                scoresService.clearCache();
+                loadScoresContent();
+              } else if (activeTab === 'for-you') {
+                loadForYouContent();
+              } else {
+                console.log('Load more content for', activeTab);
+              }
             }}
             variant="outline"
           />

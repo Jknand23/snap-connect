@@ -252,7 +252,7 @@ export default function GroupChatScreen() {
       >
         <View className={`max-w-[80%] p-3 rounded-2xl ${
           isOwnMessage 
-            ? 'bg-blue-500 rounded-br-md' 
+                            ? 'bg-interactive rounded-br-md' 
             : 'bg-gray-100 rounded-bl-md'
         }`}>
           {/* Sender name for group messages */}
@@ -326,7 +326,7 @@ export default function GroupChatScreen() {
             <View className="flex-row items-center ml-2">
               <View className={`w-12 h-1 rounded-full ${isOwnMessage ? 'bg-blue-300' : 'bg-gray-300'} mr-1`}>
                 <View 
-                  className={`h-full rounded-full ${isOwnMessage ? 'bg-white' : 'bg-blue-500'}`}
+                  className={`h-full rounded-full ${isOwnMessage ? 'bg-white' : 'bg-interactive'}`}
                   style={{ width: `${viewProgress * 100}%` }}
                 />
               </View>
@@ -427,7 +427,7 @@ export default function GroupChatScreen() {
             onPress={sendMessage}
             disabled={!inputText.trim() || sendingMessage}
             className={`ml-3 w-10 h-10 rounded-full items-center justify-center ${
-              inputText.trim() && !sendingMessage ? 'bg-blue-500' : 'bg-gray-300'
+              inputText.trim() && !sendingMessage ? 'bg-interactive' : 'bg-dark-bg-tertiary'
             }`}
           >
             <Ionicons 

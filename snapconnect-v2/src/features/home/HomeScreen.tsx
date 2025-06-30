@@ -41,6 +41,7 @@ export function HomeScreen() {
               title="Watch" 
               variant="primary" 
               size="sm"
+              onPress={() => console.log('Watch pressed')}
             />
           </View>
         </View>
@@ -50,7 +51,7 @@ export function HomeScreen() {
           <View className="flex-row items-center justify-between px-4 mb-3">
             <Text className="text-white font-semibold">Stories</Text>
             <TouchableOpacity>
-              <Text className="text-blue-500 text-sm">See All</Text>
+              <Text className="text-interactive text-sm">See All</Text>
             </TouchableOpacity>
           </View>
           <ScrollView 
@@ -68,11 +69,11 @@ export function HomeScreen() {
             
             {/* Sample Story Items */}
             <TouchableOpacity className="items-center mr-4">
-              <View className="relative ring-2 ring-blue-500 rounded-full p-1">
-                <View className="w-16 h-16 bg-blue-600 rounded-full items-center justify-center">
+              <View className="relative ring-2 ring-interactive rounded-full p-1">
+                <View className="w-16 h-16 bg-interactive rounded-full items-center justify-center shadow-lg shadow-interactive/25">
                   <Text className="text-white text-xs">🏀</Text>
                 </View>
-                <View className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full" />
+                <View className="absolute -top-1 -right-1 w-3 h-3 bg-interactive rounded-full shadow-sm" />
               </View>
               <Text className="text-xs text-white mt-1">Mike</Text>
             </TouchableOpacity>
@@ -93,20 +94,23 @@ export function HomeScreen() {
           <Button 
             title="Camera" 
             variant="glass" 
-            size="small"
+            size="sm"
             className="flex-1 mr-2"
+            onPress={() => console.log('Camera pressed')}
           />
           <Button 
             title="Teams" 
             variant="team" 
-            size="small"
+            size="sm"
             className="flex-1 mx-1"
+            onPress={() => console.log('Teams pressed')}
           />
           <Button 
             title="Discover" 
             variant="outline" 
-            size="small"
+            size="sm"
             className="flex-1 ml-2"
+            onPress={() => console.log('Discover pressed')}
           />
         </View>
 
@@ -147,8 +151,9 @@ export function HomeScreen() {
               <Text className="caption text-dark-text-tertiary">Official update</Text>
               <Button 
                 title="Read" 
-                variant="minimal" 
-                size="small"
+                variant="ghost" 
+                size="sm"
+                onPress={() => console.log('Read pressed')}
               />
             </View>
           </View>
@@ -175,11 +180,12 @@ export function HomeScreen() {
               Top 10 plays from Lakers vs Celtics
             </Text>
             <View className="flex-row justify-between items-center">
-              <Text className="caption text-dark-text-tertiary">3:24 • ESPN</Text>
+              <Text className="caption text-dark-text-tertiary">3:24 • NewsAPI</Text>
               <Button 
                 title="Play" 
                 variant="team" 
-                size="small"
+                size="sm"
+                onPress={() => console.log('Play pressed')}
               />
             </View>
           </View>

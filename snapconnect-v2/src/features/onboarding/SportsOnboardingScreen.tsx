@@ -208,8 +208,8 @@ export function SportsOnboardingScreen() {
               onPress={() => toggleLeague(league.id)}
               className={`p-4 rounded-xl border-2 ${
                 selectedLeagues.includes(league.id)
-                  ? 'border-blue-500 bg-blue-500/20'
-                  : 'border-gray-600 bg-gray-800/50'
+                  ? 'border-interactive bg-interactive/20'
+                  : 'border-dark-border-medium bg-dark-bg-elevated'
               }`}
             >
               <View className="flex-row items-center">
@@ -255,8 +255,8 @@ export function SportsOnboardingScreen() {
                     onPress={() => toggleTeam(team.id)}
                     className={`p-3 rounded-lg border ${
                       selectedTeams.includes(team.id)
-                        ? 'border-blue-500 bg-blue-500/20'
-                        : 'border-gray-600 bg-gray-800/30'
+                        ? 'border-interactive bg-interactive/20'
+                        : 'border-dark-border-medium bg-dark-bg-elevated'
                     }`}
                   >
                     <View className="flex-row items-center justify-between">
@@ -314,8 +314,8 @@ export function SportsOnboardingScreen() {
               <View 
                 className={`w-6 h-6 rounded border-2 ${
                   notificationPreferences.gameAlerts 
-                    ? 'bg-blue-500 border-blue-500' 
-                    : 'border-gray-400'
+                    ? 'bg-interactive border-interactive' 
+                    : 'border-dark-border-medium'
                 }`}
               >
                 {notificationPreferences.gameAlerts && (
@@ -344,8 +344,8 @@ export function SportsOnboardingScreen() {
               <View 
                 className={`w-6 h-6 rounded border-2 ${
                   notificationPreferences.newsUpdates 
-                    ? 'bg-blue-500 border-blue-500' 
-                    : 'border-gray-400'
+                    ? 'bg-interactive border-interactive' 
+                    : 'border-dark-border-medium'
                 }`}
               >
                 {notificationPreferences.newsUpdates && (
@@ -374,8 +374,8 @@ export function SportsOnboardingScreen() {
               <View 
                 className={`w-6 h-6 rounded border-2 ${
                   notificationPreferences.friendActivity 
-                    ? 'bg-blue-500 border-blue-500' 
-                    : 'border-gray-400'
+                    ? 'bg-interactive border-interactive' 
+                    : 'border-dark-border-medium'
                 }`}
               >
                 {notificationPreferences.friendActivity && (
@@ -406,14 +406,14 @@ export function SportsOnboardingScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-900">
+    <SafeAreaView className="flex-1 bg-black">
       {/* Progress indicator */}
       <View className="flex-row items-center justify-center p-4 space-x-2">
         {ONBOARDING_STEPS.map((_, index) => (
           <View
             key={index}
             className={`h-2 flex-1 rounded-full ${
-              index <= currentStep ? 'bg-blue-500' : 'bg-gray-600'
+              index <= currentStep ? 'bg-interactive' : 'bg-gray-600'
             }`}
           />
         ))}
@@ -445,7 +445,7 @@ export function SportsOnboardingScreen() {
         <TouchableOpacity
           onPress={nextStep}
           className={`px-6 py-3 rounded-lg ${
-            canProceed() ? 'bg-blue-600' : 'bg-gray-700'
+            canProceed() ? 'bg-interactive' : 'bg-gray-700'
           }`}
           disabled={!canProceed() || isLoading}
         >

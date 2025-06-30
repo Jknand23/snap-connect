@@ -252,8 +252,8 @@ export function MainNavigator() {
         name="Camera" 
         component={CameraStackNavigator}
         options={{
-          tabBarIcon: ({ color }) => (
-            <Text style={{ color, fontSize: 20 }}>📸</Text>
+          tabBarIcon: ({ color, size }) => (
+            <CameraIcon color={color} size={size} />
           ),
         }}
       />

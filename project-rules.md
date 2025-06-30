@@ -779,7 +779,7 @@ export class AIContentService {
 /**
  * Sports Data Service
  * 
- * Manages real-time sports data from ESPN API and SportsData.io
+ * Manages real-time sports data from NewsAPI, BallDontLie, and API-Sports
  * with intelligent caching and personalization.
  */
 export class SportsDataService {
@@ -807,14 +807,15 @@ export class SportsDataService {
     const userPreferences = await this.getUserPreferences(userId);
     
     // Combine multiple data sources
-    const [espnHighlights, sportsDataHighlights] = await Promise.all([
-      this.fetchESPNHighlights(userPreferences.teams),
-      this.fetchSportsDataHighlights(userPreferences.players),
+    const [newsApiContent, ballDontLieData, apiSportsData] = await Promise.all([
+      this.fetchNewsAPIContent(userPreferences.teams),
+      this.fetchBallDontLieData(userPreferences.teams),
+      this.fetchApiSportsData(userPreferences.teams),
     ]);
     
     // Apply AI-powered ranking
     return this.rankHighlightsByRelevance(
-      [...espnHighlights, ...sportsDataHighlights],
+      [...newsApiContent, ...ballDontLieData, ...apiSportsData],
       userPreferences
     );
   }

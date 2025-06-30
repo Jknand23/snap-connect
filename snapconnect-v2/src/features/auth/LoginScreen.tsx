@@ -303,7 +303,7 @@ export function LoginScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-900">
+    <SafeAreaView className="flex-1 bg-black">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -410,7 +410,7 @@ export function LoginScreen() {
                   disabled={isLoading}
                   className="ml-2"
                 >
-                  <Text className="text-blue-500 font-semibold">
+                  <Text className="text-interactive font-semibold">
                     {isSignUp ? 'Sign In' : 'Sign Up'}
                   </Text>
                 </TouchableOpacity>

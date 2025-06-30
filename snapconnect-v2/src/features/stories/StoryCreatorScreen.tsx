@@ -255,7 +255,7 @@ export function StoryCreatorScreen({ navigation, route }: StoryCreatorScreenProp
                 setShowPrivacyModal(false);
               }}
               className={`p-4 rounded-lg mb-3 ${
-                privacySetting === 'friends' ? 'bg-blue-600' : 'bg-gray-800'
+                privacySetting === 'friends' ? 'bg-interactive' : 'bg-dark-bg-elevated'
               }`}
             >
               <Text className="text-white font-semibold">👥 Friends</Text>
@@ -268,7 +268,7 @@ export function StoryCreatorScreen({ navigation, route }: StoryCreatorScreenProp
                 setShowPrivacyModal(false);
               }}
               className={`p-4 rounded-lg mb-3 ${
-                privacySetting === 'public' ? 'bg-blue-600' : 'bg-gray-800'
+                privacySetting === 'public' ? 'bg-interactive' : 'bg-dark-bg-elevated'
               }`}
             >
               <Text className="text-white font-semibold">🌍 Public</Text>
@@ -281,7 +281,7 @@ export function StoryCreatorScreen({ navigation, route }: StoryCreatorScreenProp
                 setShowPrivacyModal(false);
               }}
               className={`p-4 rounded-lg mb-6 ${
-                privacySetting === 'teams' ? 'bg-blue-600' : 'bg-gray-800'
+                privacySetting === 'teams' ? 'bg-interactive' : 'bg-dark-bg-elevated'
               }`}
             >
               <Text className="text-white font-semibold">🏀 Team Fans</Text>
@@ -318,7 +318,7 @@ export function StoryCreatorScreen({ navigation, route }: StoryCreatorScreenProp
           </TouchableOpacity>
           <Text className="text-white font-semibold">Create Story</Text>
           <TouchableOpacity onPress={showCameraOptions}>
-            <Text className="text-blue-500">🔄</Text>
+                            <Text className="text-interactive">🔄</Text>
           </TouchableOpacity>
         </View>
 

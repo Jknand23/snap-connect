@@ -47,24 +47,28 @@ export function ProfileScreen() {
             title="Edit Profile"
             variant="outline"
             style={styles.actionButton}
+            onPress={() => console.log('Edit Profile pressed')}
           />
           
           <Button
             title="Favorite Teams"
             variant="outline"
             style={styles.actionButton}
+            onPress={() => console.log('Favorite Teams pressed')}
           />
           
           <Button
             title="Notifications"
             variant="outline"
             style={styles.actionButton}
+            onPress={() => console.log('Notifications pressed')}
           />
           
           <Button
             title="Privacy Settings"
             variant="outline"
             style={styles.actionButton}
+            onPress={() => console.log('Privacy Settings pressed')}
           />
         </View>
 
@@ -105,7 +109,7 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#000000', // Pure black instead of slate-900
   },
   content: {
     padding: 20,
@@ -119,7 +123,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#0066FF', // Interactive blue instead of blue-500
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -137,15 +141,15 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#9CA3AF', // Updated to match our theme tertiary text
   },
   section: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#111111', // Dark elevated black instead of slate-800
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#2A2A2A', // Dark border medium instead of slate-700
   },
   sectionTitle: {
     fontSize: 18,
@@ -157,7 +161,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   signOutButton: {
-    borderColor: '#ef4444',
+    borderColor: '#ef4444', // Keep red for destructive action
   },
   statsRow: {
     flexDirection: 'row',
@@ -174,7 +178,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#9CA3AF', // Updated to match our theme tertiary text
     textTransform: 'uppercase',
   },
 }); 

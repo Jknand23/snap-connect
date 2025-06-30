@@ -247,15 +247,24 @@ export class AuthService {
   }
 
   /**
-   * Sign out current user
+   * Sign out current user with complete cleanup
    */
   async signOut(): Promise<void> {
     try {
+      // 1. First, clean up all chat presences to ensure disappearing messages can be processed
+      // Import here to avoid circular dependency
+      const { disappearingMessagesService } = await import('../messaging/disappearingMessagesService');
+      await disappearingMessagesService.leaveAllChatPresences();
+      
+      // 2. Then sign out from authentication
       const { error } = await supabase.auth.signOut();
       if (error) {
         throw new DatabaseError('Sign out failed', error);
       }
+      
+      console.log('✅ User signed out with complete cleanup');
     } catch (error) {
+      console.error('Sign out error:', error);
       throw new DatabaseError('Sign out failed', error);
     }
   }

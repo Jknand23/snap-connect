@@ -173,6 +173,36 @@ CREATE TABLE public.user_blocks (
   CHECK (blocker_id != blocked_id)
 );
 
+-- RAG User Feedback (Phase 3A Week 2)
+-- Stores user feedback on AI-generated content for learning and improvement
+CREATE TABLE IF NOT EXISTS public.rag_user_feedback (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  content_id TEXT NOT NULL, -- Reference to the AI-generated content
+  feedback_type TEXT NOT NULL CHECK (feedback_type IN ('helpful', 'not-relevant')),
+  metadata JSONB DEFAULT '{}', -- Store source attribution, relevance score, etc.
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  -- Prevent duplicate feedback for same content by same user
+  UNIQUE(user_id, content_id)
+);
+
+-- Index for efficient feedback queries
+CREATE INDEX IF NOT EXISTS idx_rag_feedback_user_created 
+  ON public.rag_user_feedback(user_id, created_at DESC);
+
+-- Index for analytics queries
+CREATE INDEX IF NOT EXISTS idx_rag_feedback_type_created 
+  ON public.rag_user_feedback(feedback_type, created_at DESC);
+
+-- Row Level Security for RAG feedback
+ALTER TABLE public.rag_user_feedback ENABLE ROW LEVEL SECURITY;
+
+-- Users can only see and insert their own feedback
+CREATE POLICY "Users can manage own RAG feedback" ON public.rag_user_feedback
+  FOR ALL USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
 -- Create indexes for performance
 CREATE INDEX idx_stories_user_id ON public.stories(user_id);
 CREATE INDEX idx_stories_expires_at ON public.stories(expires_at);

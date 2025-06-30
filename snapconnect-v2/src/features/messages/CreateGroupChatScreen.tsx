@@ -139,7 +139,7 @@ export default function CreateGroupChatScreen() {
       >
         {/* Selection indicator */}
         <View className={`w-6 h-6 rounded-full border-2 mr-3 items-center justify-center ${
-          isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300'
+                          isSelected ? 'bg-interactive border-interactive' : 'border-dark-border-medium'
         }`}>
           {isSelected && (
             <Ionicons name="checkmark" size={16} color="white" />
@@ -181,7 +181,7 @@ export default function CreateGroupChatScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row">
             {selectedFriends.map(friend => (
-              <View key={friend.id} className="bg-blue-100 rounded-full px-3 py-1 mr-2 flex-row items-center">
+              <View key={friend.id} className="bg-interactive/20 border border-interactive rounded-full px-3 py-1 mr-2 flex-row items-center">
                 <Text className="text-sm text-blue-800 mr-1">{friend.username}</Text>
                 <TouchableOpacity
                   onPress={() => setSelectedFriends(prev => prev.filter(f => f.id !== friend.id))}
@@ -215,7 +215,7 @@ export default function CreateGroupChatScreen() {
           className={`px-4 py-2 rounded-full ${
             creating || selectedFriends.length === 0 || !groupName.trim()
               ? 'bg-gray-300'
-              : 'bg-blue-500'
+              : 'bg-interactive'
           }`}
         >
           <Text className={`font-medium ${
