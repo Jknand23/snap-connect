@@ -400,6 +400,8 @@ export function ChatScreen() {
                     borderRadius={12}
                     onImagePress={() => {
                       console.log('🖼️ Image tapped:', message.media_url);
+                      // Mark message as viewed when photo is tapped
+                      handleMessageView(message);
                     }}
                   />
                 )}
@@ -407,6 +409,8 @@ export function ChatScreen() {
                   <TouchableOpacity
                     onPress={() => {
                       console.log('🎥 Video tapped:', message.media_url);
+                      // Mark message as viewed when video is tapped
+                      handleMessageView(message);
                     }}
                     activeOpacity={0.8}
                   >

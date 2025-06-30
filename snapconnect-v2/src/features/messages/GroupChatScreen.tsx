@@ -272,6 +272,10 @@ export default function GroupChatScreen() {
                 borderRadius={12}
                 onImagePress={() => {
                   console.log('🖼️ Group chat image tapped:', message.media_url);
+                  // Mark message as viewed when photo is tapped
+                  if (!message.is_viewed_by_me && !isOwnMessage) {
+                    markMessageAsViewed(message.id);
+                  }
                 }}
               />
               {message.content && (
@@ -285,6 +289,10 @@ export default function GroupChatScreen() {
               <TouchableOpacity
                 onPress={() => {
                   console.log('🎥 Group chat video tapped:', message.media_url);
+                  // Mark message as viewed when video is tapped
+                  if (!message.is_viewed_by_me && !isOwnMessage) {
+                    markMessageAsViewed(message.id);
+                  }
                 }}
                 activeOpacity={0.8}
               >

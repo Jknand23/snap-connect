@@ -22,6 +22,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as FileSystem from 'expo-file-system';
 import { useNavigation } from '@react-navigation/native';
 import { messagingService } from '../../services/messaging/messagingService';
+import { chatService } from '../../services/messaging/chatService';
 import { useAuthStore } from '../../stores/authStore';
 import type { ChatWithDetails } from '../../services/messaging/messagingService';
 import { supabase } from '../../services/database/supabase';
@@ -933,13 +934,13 @@ export function CameraScreen() {
         console.warn('⚠️ Could not test media URL accessibility:', testError);
       }
 
-      // Send message with media
-      await messagingService.sendMessage({
-        chatId: chat.id,
-        content: `Shared a ${lastCapturedMedia.type}`,
-        mediaUrl: mediaUrl,
-        mediaType: lastCapturedMedia.type as 'photo' | 'video',
-      });
+      // Send message with media using chatService for proper disappearing message support
+      await chatService.sendMessage(
+        chat.id,
+        `Shared a ${lastCapturedMedia.type}`,
+        mediaUrl,
+        lastCapturedMedia.type as 'photo' | 'video'
+      );
 
       console.log('✅ Message sent successfully');
       Alert.alert('Success!', `${lastCapturedMedia.type === 'photo' ? 'Photo' : 'Video'} sent to ${getChatDisplayName(chat)}!`);
@@ -969,6 +970,120 @@ export function CameraScreen() {
   function goBack() {
     navigation.goBack();
   }
+
+  /**
+   * Test function to manually trigger disappearing message flow for existing photo
+   * Call this from console: testPhotoDisappear()
+   */
+  const testPhotoDisappear = async () => {
+    console.log('🧪 Testing photo disappearing message flow...');
+    
+    try {
+      const messageId = 'f4682c2f-4449-40a2-a8ec-12a1242f8ae9';
+      const chatId = '9282a19b-8234-476f-87c3-6396f35e8ab2';
+      const senderId = '1501af7a-9cb6-46af-971e-19707f0cc5b4'; // janedoe
+      const recipientId = '14243396-afe6-49b2-8854-e467e46513cc'; // johndoe
+      
+      console.log('1. Photo message details:');
+      console.log('   - Message ID:', messageId);
+      console.log('   - Chat ID:', chatId);
+      console.log('   - Sender (janedoe):', senderId);
+      console.log('   - Recipient (johndoe):', recipientId);
+      
+      // Check current message state
+      const { data: messageState } = await supabase
+        .from('messages')
+        .select('is_disappearing, viewed_by_recipient, should_disappear')
+        .eq('id', messageId)
+        .single();
+      
+      console.log('2. Current message state:', messageState);
+      
+      // Mark as viewed by recipient (simulate tapping the photo)
+      console.log('3. Marking photo as viewed by recipient...');
+      const { error: viewError } = await supabase.rpc('mark_message_viewed', {
+        p_message_id: messageId,
+        p_viewer_id: recipientId
+      });
+      
+      if (viewError) {
+        console.error('❌ Error marking photo as viewed:', viewError);
+        return;
+      }
+      console.log('✅ Photo marked as viewed by recipient');
+      
+      // Check message state after viewing
+      const { data: messageAfterView } = await supabase
+        .from('messages')
+        .select('viewed_by_recipient, should_disappear')
+        .eq('id', messageId)
+        .single();
+      
+      console.log('4. Message state after viewing:', messageAfterView);
+      
+      // Mark both users as inactive (simulate leaving chat)
+      console.log('5. Marking both users as inactive...');
+      await supabase.rpc('update_chat_presence', {
+        p_chat_id: chatId,
+        p_user_id: senderId,
+        p_is_active: false
+      });
+      
+      await supabase.rpc('update_chat_presence', {
+        p_chat_id: chatId,
+        p_user_id: recipientId,
+        p_is_active: false
+      });
+      
+      console.log('✅ Both users marked as inactive');
+      
+      // Check presence state
+      const { data: presence } = await supabase
+        .from('chat_presence')
+        .select('user_id, is_active')
+        .eq('chat_id', chatId);
+      
+      console.log('6. Presence state:', presence);
+      
+      // Wait a moment and trigger cleanup
+      console.log('7. Waiting 2 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('8. Triggering cleanup...');
+      const { data: cleanupResult } = await supabase.rpc('full_message_cleanup');
+      console.log('✅ Cleanup result:', cleanupResult);
+      
+      // Check if message still exists
+      console.log('9. Checking if photo message still exists...');
+      const { data: messageCheck } = await supabase
+        .from('messages')
+        .select('id, should_disappear, viewed_by_recipient')
+        .eq('id', messageId)
+        .single();
+      
+      if (messageCheck) {
+        console.log('📝 Photo message still exists:', messageCheck);
+        
+        if (messageCheck.should_disappear) {
+          console.log('⚠️ Photo marked for deletion but not deleted yet');
+        } else {
+          console.log('❌ Photo NOT marked for deletion');
+        }
+      } else {
+        console.log('💨 SUCCESS! Photo message disappeared!');
+      }
+      
+    } catch (error) {
+      console.error('❌ Test failed:', error);
+    }
+  };
+
+  // Expose test function to global scope for debugging
+  useEffect(() => {
+    if (__DEV__) {
+      (global as any).testPhotoDisappear = testPhotoDisappear;
+    }
+  }, []);
 
   if (!permission) {
     return (

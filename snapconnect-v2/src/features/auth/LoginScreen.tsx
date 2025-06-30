@@ -179,63 +179,7 @@ export function LoginScreen() {
     }
   }
 
-  /**
-   * Test Supabase connection
-   */
-  async function testConnection() {
-    console.log('Testing Supabase connection...');
-    try {
-      const result = await authService.testConnection();
-      Alert.alert(
-        'Connection Test',
-        result.message,
-        [{ text: 'OK' }]
-      );
-      console.log('Connection test result:', result);
-    } catch (error) {
-      console.error('Connection test failed:', error);
-      Alert.alert(
-        'Connection Test Failed',
-        'Could not test connection. Check console for details.',
-        [{ text: 'OK' }]
-      );
-    }
-  }
 
-  /**
-   * Test database schema
-   */
-  async function testDatabase() {
-    console.log('Testing database schema...');
-    try {
-      const result = await authService.testDatabaseSchema();
-      
-      // Show detailed results in alert
-      const detailsText = Object.entries(result.details)
-        .map(([table, info]: [string, any]) => {
-          if (info.error) {
-            return `❌ ${table}: ${info.error}`;
-          } else {
-            return `✅ ${table}: OK`;
-          }
-        })
-        .join('\n');
-      
-      Alert.alert(
-        'Database Test Results',
-        `${result.message}\n\n${detailsText}`,
-        [{ text: 'OK' }]
-      );
-      console.log('Database test result:', result);
-    } catch (error) {
-      console.error('Database test failed:', error);
-      Alert.alert(
-        'Database Test Failed',
-        `Error: ${error}`,
-        [{ text: 'OK' }]
-      );
-    }
-  }
 
   /**
    * Render form input
@@ -380,24 +324,6 @@ export function LoginScreen() {
                   isLoading={isLoading}
                   disabled={isLoading}
                 />
-                
-                {/* Debug: Test Connection Button */}
-                <View className="mt-4 space-y-2">
-                  <Button
-                    title="Test Supabase Connection"
-                    onPress={testConnection}
-                    variant="secondary"
-                    size="sm"
-                    fullWidth
-                  />
-                  <Button
-                    title="Test Database Schema"
-                    onPress={testDatabase}
-                    variant="secondary"
-                    size="sm"
-                    fullWidth
-                  />
-                </View>
               </View>
 
               {/* Auth Mode Toggle */}
